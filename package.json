@@ -1,0 +1,31 @@
+{
+  "name": "vue-risk-dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@antv/g6": "^4.8.24",
+    "countup.js": "^2.9.0",
+    "dompurify": "^3.2.6",
+    "echarts": "^5.6.0",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "autoprefixer": "^10.4.19",
+    "jsdom": "^24.1.0",
+    "postcss": "^8.4.38",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1",
+    "vite-plugin-imagemin": "^0.6.1",
+    "vite-plugin-vue-devtools": "^7.3.5"
+  }
+}

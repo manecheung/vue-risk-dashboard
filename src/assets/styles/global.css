@@ -1,0 +1,40 @@
+:root {
+  --bg-dark: #020617;
+  --panel-bg: rgba(15, 23, 42, 0.7);
+  --border-color: rgba(30, 64, 175, 0.5);
+  --glow-color: #0ea5e9;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --brand-color: #38bdf8;
+  --risk-high-color: #f87171;
+  --risk-medium-color: #fbbf24;
+  --risk-low-color: #4ade80;
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.6);
+}

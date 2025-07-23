@@ -418,74 +418,192 @@
 
 #### **5. 产业链风险预警模块 (Chain Risk)**
 
-##### **5.1 风险蔓延模拟**
+##### **5.1 获取风险蔓延模拟列表**
 
-  * **接口名称:** 启动风险蔓延模拟
-  * **请求方法:** `POST`
-  * **请求路径:** `/api/chain-risk/simulation`
-  * **接口描述:** 从指定的风险源头开始，模拟风险在产业链知识图谱中的蔓延路径和影响范围。
-  * **请求体 (Request Body):** `application/json`
-    ```json
-    {
-      "startNodeId": "risk-source"
-    }
-    ```
-    **字段说明:**
-      * `startNodeId` (string, required): 模拟开始的风险源节点ID。
-  * **成功响应 (200 OK):**
-    ```json
-    {
-      "code": 200,
-      "message": "模拟成功",
-      "data": {
-        "nodes": [
-          { "id": "risk-source", "label": "天灾：东南亚洪灾", "isSource": true, "style": { "fill": "var(--risk-high-color)", "stroke": "#fca5a5" } },
-          { "id": "t2-material-a", "label": "A材料（二级）" },
-          { "id": "t2-material-b", "label": "B材料（二级）" },
-          { "id": "t1-chip", "label": "凤凰芯片（一级）" },
-          { "id": "t1-battery", "label": "国创电池（一级）" },
-          { "id": "t1-screen", "label": "华星屏幕（一级）" },
-          { "id": "t1-case", "label": "精密外壳（一级）" },
-          { "id": "core-phone", "label": "未来手机（核心）" },
-          { "id": "core-car", "label": "未来汽车（核心）" },
-          { "id": "logistics-a", "label": "远洋物流" },
-          { "id": "logistics-b", "label": "顺风速运" },
-          { "id": "market-cn", "label": "国内市场" },
-          { "id": "market-eu", "label": "欧洲市场" }
-        ],
-        "edges": [
-          { "source": "risk-source", "target": "t2-material-a" },
-          { "source": "t2-material-a", "target": "t1-chip" },
-          { "source": "t2-material-b", "target": "t1-chip" },
-          { "source": "t2-material-b", "target": "t1-battery" },
-          { "source": "t1-chip", "target": "core-phone" },
-          { "source": "t1-battery", "target": "core-phone" },
-          { "source": "t1-screen", "target": "core-phone" },
-          { "source": "t1-case", "target": "core-phone" },
-          { "source": "t1-battery", "target": "core-car" },
-          { "source": "t1-case", "target": "core-car" },
-          { "source": "logistics-a", "target": "t2-material-a" },
-          { "source": "logistics-a", "target": "t1-screen" },
-          { "source": "core-phone", "target": "logistics-b" },
-          { "source": "core-car", "target": "logistics-b" },
-          { "source": "logistics-b", "target": "market-cn" },
-          { "source": "logistics-b", "target": "market-eu" }
-        ],
-        "riskPath": [
-          ["t2-material-a"],
-          ["t1-chip"],
-          ["t1-battery", "core-phone"],
-          ["core-car"],
-          ["logistics-b"],
-          ["market-cn", "market-eu"]
-        ]
-      }
-    }
-    ```
-    **响应数据字段说明:**
-      * `nodes` (array): 构成产业链网络的节点（企业、产品、市场等）列表。
-      * `edges` (array): 连接节点的关系边列表。
-      * `riskPath` (array): 一个二维数组，按时间步长（数组的索引）展示受风险影响的节点ID列表。
+  * **接口名称:** 获取风险蔓延模拟列表
+  * **请求方法:** `GET`
+  * **请求路径:** `/api/chain-risk/simulations`
+  * **接口描述:** 以分页的形式获取已保存的风险蔓延模拟场景列表。支持通过关键词对模拟名称进行搜索。
+  * **请求参数 (Query):**
+      * `page` (number, optional, default: 1): 请求的数据页码。
+      * `pageSize` (number, optional, default: 10): 每页返回的记录数量。
+      * `keyword` (string, optional): 搜索关键词，用于在模拟名称 (`name`) 或描述 (`description`) 中进行模糊匹配。
+  * **成功响应 (200 OK):**
+    ```json
+    {
+      "code": 200,
+      "message": "查询成功",
+      "data": {
+        "page": 1,
+        "pageSize": 10,
+        "totalRecords": 3,
+        "totalPages": 1,
+        "hasPrevPage": false,
+        "hasNextPage": false,
+        "records": [
+          { "id": 1, "name": "未来手机供应链洪灾风险模拟", "description": "模拟东南亚洪灾对未来手机供应链中上游材料供应的影响。", "creator": "李四", "createTime": "2025-07-20 14:00:00" },
+          { "id": 2, "name": "新能源汽车芯片断供风险模拟", "description": "模拟凤凰芯片因故断供对核心车企造成的冲击。", "creator": "李四", "createTime": "2025-07-21 10:30:00" },
+          { "id": 3, "name": "华星屏幕火灾风险模拟", "description": "模拟华星屏幕工厂发生火灾对其下游客户的影响。", "creator": "分析小组", "createTime": "2025-07-22 09:00:00" }
+        ]
+      }
+    }
+    ```
+    **响应数据字段说明:**
+      * `page`, `pageSize`, `totalRecords`, `totalPages`, `hasPrevPage`, `hasNextPage` 为分页信息。
+      * `records` (array of objects): 模拟场景记录数组。
+          * `id` (number): 模拟场景的唯一标识符。
+          * `name` (string): 模拟场景的名称。
+          * `description` (string): 对该模拟场景的简要描述。
+          * `creator` (string): 创建该模拟的用户或团队名称。
+          * `createTime` (string): 创建时间，格式为 `YYYY-MM-DD HH:mm:ss`。
+
+##### **5.2 导入并保存风险蔓延模拟数据**
+
+  * **接口名称:** 导入并保存风险蔓延模拟数据
+  * **请求方法:** `POST`
+  * **请求路径:** `/api/chain-risk/simulations`
+  * **接口描述:** 导入并保存一个新的风险蔓延模拟场景，包括其元数据以及构成图谱的节点、边和可选的风险路径数据。
+  * **请求体 (Request Body):** `application/json`
+    ```json
+    {
+      "name": "已完成的未来手机供应链洪灾风险模拟",
+      "description": "保存2025-07-22执行的洪灾模拟结果。",
+      "nodes": [
+        { "id": "risk-source", "label": "天灾：东南亚洪灾", "isSource": true, "style": { "fill": "var(--risk-high-color)", "stroke": "#fca5a5" } },
+        { "id": "t2-material-a", "label": "A材料（二级）" },
+        { "id": "t2-material-b", "label": "B材料（二级）" },
+        { "id": "t1-chip", "label": "凤凰芯片（一级）" },
+        { "id": "t1-battery", "label": "国创电池（一级）" },
+        { "id": "core-phone", "label": "未来手机（核心）" },
+        { "id": "core-car", "label": "未来汽车（核心）" }
+      ],
+      "edges": [
+        { "source": "risk-source", "target": "t2-material-a" },
+        { "source": "t2-material-a", "target": "t1-chip" },
+        { "source": "t2-material-b", "target": "t1-chip" },
+        { "source": "t2-material-b", "target": "t1-battery" },
+        { "source": "t1-chip", "target": "core-phone" },
+        { "source": "t1-battery", "target": "core-phone" },
+        { "source": "t1-battery", "target": "core-car" }
+      ],
+      "riskPath": [
+        ["t2-material-a"],
+        ["t1-chip"],
+        ["t1-battery", "core-phone"],
+        ["core-car"]
+      ]
+    }
+    ```
+    **字段说明:**
+      * `name` (string, required): 模拟场景的名称。
+      * `description` (string, optional): 模拟场景的描述。
+      * `nodes` (array of objects, required): 构成产业链网络的节点列表。
+      * `edges` (array of objects, required): 连接节点的关系边列表。
+     * `riskPath` (array, optional): 一个二维数组，按时间步长展示受风险影响的节点ID列表。如果提供此字段，则表示保存的是一次完整的模拟结果；如果为空或不提供，则表示仅保存可供模拟的图谱结构。
+  * **成功响应 (201 Created):**
+    ```json
+    {
+      "code": 201,
+      "message": "创建成功",
+      "data": {
+        "id": 4
+      }
+    }
+    ```
+    **字段说明:**
+      * `id` (number): 新创建的模拟场景的唯一ID。
+
+##### **5.3 启动风险蔓延模拟**
+
+  * **接口名称:** 启动风险蔓延模拟
+  * **请求方法:** `POST`
+  * **请求路径:** `/api/chain-risk/simulations/{id}/run`
+  * **接口描述:** 针对一个已保存的特定模拟场景 (`id`)，从指定的风险源头开始，模拟风险在产业链知识图谱中的蔓延路径和影响范围。
+  * **请求参数 (Path):**
+      * `id` (number, required): 要运行的模拟场景的唯一ID。
+  * **请求体 (Request Body):** `application/json`
+    ```json
+    {
+      "startNodeId": "risk-source"
+    }
+    ```
+    **字段说明:**
+      * `startNodeId` (string, required): 模拟开始的风险源节点ID。该ID必须存在于对应模拟场景的节点列表中。
+  * **成功响应 (200 OK):**
+    ```json
+    {
+      "code": 200,
+      "message": "模拟成功",
+      "data": {
+        "simulationId": 1,
+        "simulationName": "未来手机供应链洪灾风险模拟",
+        "nodes": [
+          { "id": "risk-source", "label": "天灾：东南亚洪灾", "isSource": true, "style": { "fill": "var(--risk-high-color)", "stroke": "#fca5a5" } },
+          { "id": "t2-material-a", "label": "A材料（二级）" },
+          { "id": "t2-material-b", "label": "B材料（二级）" },
+          { "id": "t1-chip", "label": "凤凰芯片（一级）" },
+          { "id": "t1-battery", "label": "国创电池（一级）" },
+          { "id": "t1-screen", "label": "华星屏幕（一级）" },
+          { "id": "t1-case", "label": "精密外壳（一级）" },
+          { "id": "core-phone", "label": "未来手机（核心）" },
+          { "id": "core-car", "label": "未来汽车（核心）" },
+          { "id": "logistics-a", "label": "远洋物流" },
+          { "id": "logistics-b", "label": "顺风速运" },
+          { "id": "market-cn", "label": "国内市场" },
+          { "id": "market-eu", "label": "欧洲市场" }
+        ],
+        "edges": [
+          { "source": "risk-source", "target": "t2-material-a" },
+          { "source": "t2-material-a", "target": "t1-chip" },
+          { "source": "t2-material-b", "target": "t1-chip" },
+          { "source": "t2-material-b", "target": "t1-battery" },
+          { "source": "t1-chip", "target": "core-phone" },
+          { "source": "t1-battery", "target": "core-phone" },
+          { "source": "t1-screen", "target": "core-phone" },
+          { "source": "t1-case", "target": "core-phone" },
+          { "source": "t1-battery", "target": "core-car" },
+          { "source": "t1-case", "target": "core-car" },
+          { "source": "logistics-a", "target": "t2-material-a" },
+          { "source": "logistics-a", "target": "t1-screen" },
+          { "source": "core-phone", "target": "logistics-b" },
+          { "source": "core-car", "target": "logistics-b" },
+          { "source": "logistics-b", "target": "market-cn" },
+          { "source": "logistics-b", "target": "market-eu" }
+        ],
+        "riskPath": [
+          ["t2-material-a"],
+          ["t1-chip"],
+          ["t1-battery", "core-phone"],
+          ["core-car"],
+          ["logistics-b"],
+          ["market-cn", "market-eu"]
+        ]
+      }
+    }
+    ```
+    **响应数据字段说明:**
+      * `simulationId` (number): 本次运行的模拟场景ID。
+      * `simulationName` (string): 本次运行的模拟场景名称。
+      * `nodes` (array): 构成产业链网络的节点（企业、产品、市场等）列表。
+      * `edges` (array): 连接节点的关系边列表。
+      * `riskPath` (array): 一个二维数组，按时间步长（数组的索引）展示受风险影响的节点ID列表。
+
+##### **5.4 删除风险蔓延模拟场景**
+
+  * **接口名称:** 删除风险蔓延模拟场景
+  * **请求方法:** `DELETE`
+  * **请求路径:** `/api/chain-risk/simulations/{id}`
+  * **接口描述:** 根据ID删除一个已保存的风险蔓延模拟场景。
+  * **请求参数 (Path):**
+      * `id` (number, required): 要删除的模拟场景的唯一ID。
+  * **成功响应 (200 OK):**
+    ```json
+    {
+      "code": 200,
+      "message": "删除成功",
+      "data": null
+    }
+    ```
 
 -----
 
@@ -1065,3 +1183,4 @@
     ```
     **字段说明:**
       * `data` (array of strings): 包含所有权限点显示名称的字符串数组。
+* 

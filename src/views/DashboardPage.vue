@@ -129,7 +129,7 @@ const knowledgeGraphRef = ref(null);
 // 修改点 4: 增加一个辅助函数，用于将关系类型(英文)映射为显示标签(中文)
 const relationTypeToLabel = (type) => {
   const map = {
-    supplier: '供应',
+    supplier: '竞争',
     customer: '销售',
     partner: '合作',
   };

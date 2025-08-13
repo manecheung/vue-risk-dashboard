@@ -8,6 +8,17 @@ import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      // 将 /api 开头的请求代理到后端服务器
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true, // 必须设置为 true，以确保正确的源头
+        // 如果后端API本身没有/api前缀，可以在这里重写路径
+        // rewrite: (path) => path.replace(/^\/api/, ''), 
+      },
+    },
+  },
   plugins: [
     vue(),
     vueDevTools(),

@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 
 const routes = [
+  { path: '/login', name: 'login', component: () => import('../views/LoginPage.vue'), meta: { title: '登录', public: true } },
   { path: '/', name: 'dashboard', component: () => import('../views/DashboardPage.vue'), meta: { title: '首页看板' } },
   { path: '/monitoring', name: 'monitoring', component: () => import('../views/MonitoringListPage.vue'), meta: { title: '网络信息监测' } },
   { path: '/news/:id', name: 'newsDetail', component: () => import('../views/NewsDetailPage.vue'), props: true, meta: { title: '要闻详情' } },
@@ -14,6 +16,19 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+  const requiresAuth = !to.meta.public;
+
+  if (requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'login' });
+  } else if (!requiresAuth && authStore.isAuthenticated && to.name === 'login') {
+    next({ name: 'dashboard' });
+  } else {
+    next();
+  }
 });
 
 router.afterEach((to) => {

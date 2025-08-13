@@ -18,66 +18,61 @@
       </div>
 
       <div class="flex-grow min-h-0 overflow-y-auto custom-scrollbar relative">
+        <!-- Users Panel -->
         <div v-show="activeTab === 'users'" id="users-panel" role="tabpanel" class="p-4 space-y-4">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold">用户列表</h3><button @click="openModal(ITEM_TYPES.USER)"
-              class="btn btn-primary text-sm">新增用户</button>
+            <div class="flex items-center space-x-2">
+              <input type="text" v-model="userSearchKeyword" @keydown.enter="handleUserSearch" class="form-input" placeholder="搜索用户名或姓名...">
+              <button @click="handleUserSearch" class="btn btn-secondary">搜索</button>
+            </div>
+            <button @click="openModal(ITEM_TYPES.USER)" class="btn btn-primary text-sm">新增用户</button>
           </div>
-          <DataTable :columns="userColumns" :items="store.usersWithDetails" min-width="800px" aria-label="用户列表"
-            empty-message="暂无用户">
+          <DataTable :columns="userColumns" :items="store.users" min-width="800px" aria-label="用户列表" empty-message="暂无用户">
             <template #cell-status="{ item }">
               <span :class="item.status === '正常' ? 'text-green-400' : 'text-red-400'">{{ item.status }}</span>
             </template>
             <template #cell-actions="{ item }">
               <div class="space-x-4">
                 <button @click="openModal(ITEM_TYPES.USER, item)" class="text-sky-400 hover:text-sky-200">编辑</button>
-                <button @click="openConfirmModal(ITEM_TYPES.USER, item)"
-                  class="text-red-400 hover:text-red-200">删除</button>
+                <button @click="openConfirmModal(ITEM_TYPES.USER, item)" class="text-red-400 hover:text-red-200">删除</button>
               </div>
             </template>
           </DataTable>
+           <div class="flex justify-center mt-4">
+              <button @click="changeUserPage(store.pagination.page - 1)" :disabled="!store.pagination.hasPrevPage" class="btn btn-secondary text-sm">上一页</button>
+              <span class="px-4 py-2 text-sm">第 {{ store.pagination.page }} / {{ store.pagination.totalPages }} 页</span>
+              <button @click="changeUserPage(store.pagination.page + 1)" :disabled="!store.pagination.hasNextPage" class="btn btn-secondary text-sm">下一页</button>
+            </div>
         </div>
 
+        <!-- Roles Panel -->
         <div v-show="activeTab === 'roles'" id="roles-panel" role="tabpanel" class="p-4 space-y-4">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold">角色列表</h3><button @click="openModal(ITEM_TYPES.ROLE)"
-              class="btn btn-primary text-sm">新增角色</button>
+            <h3 class="text-lg font-semibold">角色列表</h3>
+            <button @click="openModal(ITEM_TYPES.ROLE)" class="btn btn-primary text-sm">新增角色</button>
           </div>
-          <DataTable :columns="roleColumns" :items="store.roleList" min-width="800px" aria-label="角色列表"
-            empty-message="暂无角色">
-            <template #cell-name="{ item }">
-              <span class="font-semibold text-slate-200">{{ item.name }}</span>
-            </template>
-            <template #cell-permissions="{ item }">
-              <div class="flex flex-wrap gap-2">
-                <span v-for="p in item.permissions" :key="p"
-                  class="bg-sky-500/10 text-sky-300 text-xs px-2 py-1 rounded-full">{{ p }}</span>
-              </div>
-            </template>
+          <DataTable :columns="roleColumns" :items="store.roleList" min-width="800px" aria-label="角色列表" empty-message="暂无角色">
             <template #cell-actions="{ item }">
               <div class="space-x-4">
-                <button @click="openModal(ITEM_TYPES.PERMISSION, item)"
-                  class="text-amber-400 hover:text-amber-200">授权</button>
+                <button @click="openPermissionModal(item)" class="text-amber-400 hover:text-amber-200">授权</button>
                 <button @click="openModal(ITEM_TYPES.ROLE, item)" class="text-sky-400 hover:text-sky-200">编辑</button>
-                <button @click="openConfirmModal(ITEM_TYPES.ROLE, item)"
-                  class="text-red-400 hover:text-red-200">删除</button>
+                <button @click="openConfirmModal(ITEM_TYPES.ROLE, item)" class="text-red-400 hover:text-red-200">删除</button>
               </div>
             </template>
           </DataTable>
         </div>
 
+        <!-- Organizations Panel -->
         <div v-show="activeTab === 'orgs'" id="orgs-panel" role="tabpanel" class="p-4 space-y-4">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold">组织架构</h3><button @click="openModal(ITEM_TYPES.ORG)"
-              class="btn btn-primary text-sm">新增组织</button>
+            <h3 class="text-lg font-semibold">组织架构</h3>
+            <button @click="openModal(ITEM_TYPES.ORG)" class="btn btn-primary text-sm">新增组织</button>
           </div>
-          <DataTable :columns="orgColumns" :items="store.orgList" min-width="600px" aria-label="组织架构列表"
-            empty-message="暂无组织">
+          <DataTable :columns="orgColumns" :items="store.organizationTree" :is-tree="true" min-width="600px" aria-label="组织架构列表" empty-message="暂无组织">
             <template #cell-actions="{ item }">
               <div class="space-x-4">
                 <button @click="openModal(ITEM_TYPES.ORG, item)" class="text-sky-400 hover:text-sky-200">编辑</button>
-                <button @click="openConfirmModal(ITEM_TYPES.ORG, item)"
-                  class="text-red-400 hover:text-red-200">删除</button>
+                <button @click="openConfirmModal(ITEM_TYPES.ORG, item)" class="text-red-400 hover:text-red-200">删除</button>
               </div>
             </template>
           </DataTable>
@@ -85,20 +80,24 @@
       </div>
     </div>
 
-    <FormModal :is-open="isFormModalOpen" :form-type="formType" :item-data="currentItem" :roles="store.roleNames"
-      :organizations="store.orgNames" :org-parent-options="orgParentOptions" :user-options="store.userNames"
-      @close="closeModal" @save="handleSave" />
-    <PermissionModal :is-open="isPermissionModalOpen" :role="currentItem" :all-permissions="store.allPermissions"
-      @close="closeModal" @save="handleSavePermissions" />
+    <FormModal :is-open="isFormModalOpen" :form-type="formType" :item-data="currentItem" :roles="store.roleList"
+      :organizations="store.orgListForSelect" @close="closeModal" @save="handleSave" />
+    <PermissionModal 
+      :is-open="isPermissionModalOpen" 
+      :role="currentItem" 
+      :all-permissions="store.allPermissions"
+      :assigned-permissions="store.permissions.assignedKeys"
+      @close="closeModal" 
+      @save="handleSavePermissions" />
     <ConfirmModal :is-open="isConfirmModalOpen" title="确认删除" @confirm="handleDelete" @cancel="closeModal">
       <p>您确定要删除“<strong class="text-amber-400">{{ currentItem?.name }}</strong>”吗？</p>
-      <p class="mt-2 text-sm text-slate-500">此操作无法撤销，请谨慎操作。</p>
+      <p class="mt-2 text-sm text-slate-500">此操作无法撤销。</p>
     </ConfirmModal>
   </main>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useSystemManagementStore } from '@/stores/systemManagementStore';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
 import FormModal from '@/components/system/FormModal.vue';
@@ -114,57 +113,52 @@ const isPermissionModalOpen = ref(false);
 const isConfirmModalOpen = ref(false);
 const currentItem = ref(null);
 const formType = ref('');
+const userSearchKeyword = ref('');
 
 const userColumns = [
-  { key: 'username', label: '用户名', cellClass: 'text-center' },
-  { key: 'name', label: '姓名', cellClass: 'text-center' },
-  { key: 'role', label: '角色', cellClass: 'text-center' },
-  { key: 'organization', label: '所属组织', cellClass: 'text-center' },
-  { key: 'status', label: '状态', cellClass: 'text-center' },
-  { key: 'lastLogin', label: '上次登录', cellClass: 'text-center' },
+  { key: 'username', label: '用户名' },
+  { key: 'name', label: '姓名' },
+  { key: 'role', label: '角色' },
+  { key: 'organization', label: '所属组织' },
+  { key: 'status', label: '状态' },
+  { key: 'lastLogin', label: '上次登录' },
   { key: 'actions', label: '操作', cellClass: 'text-center' }
 ];
 
 const roleColumns = [
-  { key: 'name', label: '角色名称', cellClass: 'text-left' },
-  { key: 'description', label: '描述', cellClass: 'text-left' },
-  { key: 'permissions', label: '拥有权限', cellClass: 'text-left' },
-  { key: 'actions', label: '操作', cellClass: 'text-left' }
-];
-
-const orgColumns = [
-  { key: 'name', label: '组织名称', cellClass: 'text-center' },
-  { key: 'parent', label: '上级组织', cellClass: 'text-center' },
-  { key: 'manager', label: '负责人', cellClass: 'text-center' },
-  { key: 'userCount', label: '成员数', cellClass: 'text-center' },
+  { key: 'name', label: '角色名称' },
+  { key: 'description', label: '描述' },
   { key: 'actions', label: '操作', cellClass: 'text-center' }
 ];
 
-const orgParentOptions = computed(() => {
-  const allOrgs = store.orgNames;
-  if (formType.value === ITEM_TYPES.ORG && currentItem.value?.id) {
-    return ['-', ...allOrgs.filter(name => name !== currentItem.value.name)];
-  }
-  return ['-', ...allOrgs];
+const orgColumns = [
+  { key: 'name', label: '组织名称' },
+  { key: 'parent', label: '上级组织' },
+  { key: 'manager', label: '负责人' },
+  { key: 'userCount', label: '成员数' },
+  { key: 'actions', label: '操作', cellClass: 'text-center' }
+];
+
+onMounted(() => {
+  store.fetchAll();
 });
 
 const openModal = (type, item = null) => {
-  const fullItem = item ? (type === ITEM_TYPES.USER ? store.usersWithDetails.find(u => u.id === item.id) : item) : null;
   formType.value = type;
-  currentItem.value = fullItem;
-  if (type === ITEM_TYPES.PERMISSION) {
-    isPermissionModalOpen.value = true;
-  } else {
-    isFormModalOpen.value = true;
-  }
+  currentItem.value = item ? { ...item } : null;
+  isFormModalOpen.value = true;
+};
+
+const openPermissionModal = async (role) => {
+  currentItem.value = { ...role };
+  await store.fetchRolePermissions(role.id);
+  isPermissionModalOpen.value = true;
 };
 
 const openConfirmModal = (type, item) => {
-  if (store.canDeleteItem(type, item)) {
-    formType.value = type;
-    currentItem.value = item;
-    isConfirmModalOpen.value = true;
-  }
+  formType.value = type;
+  currentItem.value = item;
+  isConfirmModalOpen.value = true;
 };
 
 const closeModal = () => {
@@ -176,17 +170,69 @@ const closeModal = () => {
 };
 
 const handleSave = async (data) => {
-  await store.saveItem(formType.value, data);
+  const isEdit = !!data.id;
+  switch (formType.value) {
+    case ITEM_TYPES.USER:
+      await (isEdit ? store.updateUser(data.id, data) : store.addUser(data));
+      break;
+    case ITEM_TYPES.ROLE:
+      await (isEdit ? store.updateRole(data.id, data) : store.addRole(data));
+      break;
+    case ITEM_TYPES.ORG:
+      await (isEdit ? store.updateOrganization(data.id, data) : store.addOrganization(data));
+      break;
+  }
   closeModal();
 };
 
-const handleSavePermissions = async (permissions) => {
-  await store.savePermissions(currentItem.value.id, permissions);
+const handleSavePermissions = async (permissionKeys) => {
+  if (currentItem.value?.id) {
+    await store.updateRolePermissions(currentItem.value.id, permissionKeys);
+  }
   closeModal();
 };
 
 const handleDelete = async () => {
-  await store.deleteItem(formType.value, currentItem.value.id);
+  if (!currentItem.value?.id) return;
+  switch (formType.value) {
+    case ITEM_TYPES.USER:
+      await store.deleteUser(currentItem.value.id);
+      break;
+    case ITEM_TYPES.ROLE:
+      await store.deleteRole(currentItem.value.id);
+      break;
+    case ITEM_TYPES.ORG:
+      await store.deleteOrganization(currentItem.value.id);
+      break;
+  }
   closeModal();
 };
+
+const handleUserSearch = () => {
+  store.fetchUsers(1, userSearchKeyword.value);
+}
+
+const changeUserPage = (page) => {
+  store.fetchUsers(page, userSearchKeyword.value);
+}
+
 </script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+</style>

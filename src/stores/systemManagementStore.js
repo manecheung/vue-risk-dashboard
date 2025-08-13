@@ -1,138 +1,259 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { getSystemData } from '@/services/api';
+import {
+  getUsers,
+  addUser as apiAddUser,
+  updateUser as apiUpdateUser,
+  deleteUser as apiDeleteUser,
+  getRoles,
+  addRole as apiAddRole,
+  updateRole as apiUpdateRole,
+  deleteRole as apiDeleteRole,
+  getRolePermissions,
+  updateRolePermissions as apiUpdateRolePermissions,
+  getOrganizationTree,
+  addOrganization as apiAddOrganization,
+  updateOrganization as apiUpdateOrganization,
+  deleteOrganization as apiDeleteOrganization,
+} from '@/services/api';
 import { useFeedbackStore } from './feedbackStore';
-
-const normalizeById = (array) => {
-  return array.reduce((obj, item) => {
-    obj[item.id] = item;
-    return obj;
-  }, {});
-};
 
 export const useSystemManagementStore = defineStore('systemManagement', () => {
   const feedback = useFeedbackStore();
 
-  const users = ref({});
-  const roles = ref({});
-  const organizations = ref({});
-  const allPermissions = ref([]);
+  // --- State ---
+  const users = ref([]);
+  const roles = ref([]);
+  const organizationTree = ref([]);
+  const permissions = ref({ assignedKeys: [], permissionTree: [] });
+  
+  // 与后端 DataInitializer.java 保持同步
+  const allPermissions = ref([
+    'dashboard', 
+    'dashboard:view', 
+    'monitoring', 
+    'monitoring:view', 
+    'chain-risk', 
+    'chain-risk:view', 
+    'chain-risk:manage', 
+    'supply-chain', 
+    'supply-chain:view', 
+    'supply-chain:manage', 
+    'system', 
+    'system:users:manage', 
+    'system:roles:manage', 
+    'system:orgs:manage'
+  ]);
 
-  const roleList = computed(() => Object.values(roles.value));
-  const orgList = computed(() => Object.values(organizations.value));
-  const userList = computed(() => Object.values(users.value));
+  const isLoading = ref(false);
+  const error = ref(null);
+  const pagination = ref({ page: 1, pageSize: 10, totalRecords: 0, totalPages: 1 });
 
-  const roleNameMap = computed(() => roleList.value.reduce((map, item) => {
-    map[item.name] = item.name;
-    return map;
-  }, {}));
-
-  const orgNameMap = computed(() => orgList.value.reduce((map, item) => {
-    map[item.name] = item.name;
-    return map;
-  }, {}));
-
-  const roleNames = computed(() => roleList.value.map(r => r.name));
-  const orgNames = computed(() => orgList.value.map(o => o.name));
-  const userNames = computed(() => userList.value.map(u => u.name));
-
-  const usersWithDetails = computed(() => {
-    const rolesMap = roleNameMap.value;
-    const orgsMap = orgNameMap.value;
-    
-    return userList.value.map(user => {
-      const roleName = rolesMap[user.role] || '未知角色';
-      const orgName = orgsMap[user.organization] || '未知组织';
-      return {
-        ...user,
-        role: roleName,
-        organization: orgName,
-      };
-    });
+  // --- Getters ---
+  const roleList = computed(() => roles.value.map(r => ({ id: r.id, name: r.name, description: r.description })));
+  const orgListForSelect = computed(() => {
+      const list = [];
+      function flatten(nodes) {
+          for (const node of nodes) {
+              list.push({ id: node.id, name: node.name });
+              if (node.children && node.children.length > 0) {
+                  flatten(node.children);
+              }
+          }
+      }
+      flatten(organizationTree.value);
+      return list;
   });
 
-  async function fetchData() {
-    const { data, error } = await getSystemData();
-    if(error){
-        feedback.show('系统管理数据加载失败', 'error');
-        return;
+  // --- Actions ---
+
+  async function fetchAll() {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      await Promise.all([
+        fetchUsers(),
+        fetchRoles(),
+        fetchOrganizationTree(),
+      ]);
+    } catch (err) {
+      error.value = err.message;
+      feedback.show('系统管理核心数据加载失败', 'error');
+    } finally {
+      isLoading.value = false;
     }
-    users.value = normalizeById(data.users);
-    roles.value = normalizeById(data.roles);
-    organizations.value = normalizeById(data.organizations);
-    allPermissions.value = data.allPermissions;
   }
 
-  fetchData();
+  // Users
+  async function fetchUsers(page = 1, keyword = '') {
+    isLoading.value = true;
+    try {
+      const params = { page, pageSize: pagination.value.pageSize, keyword: keyword || null };
+      const data = await getUsers(params);
+      users.value = data.records;
+      pagination.value = { ...pagination.value, ...data };
+    } catch (err) {
+      error.value = err.message;
+      feedback.show(`用户列表加载失败: ${err.message}`, 'error');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function addUser(userData) {
+    try {
+      await apiAddUser(userData);
+      feedback.show('用户添加成功', 'success');
+      await fetchUsers(pagination.value.page);
+    } catch (err) {
+      feedback.show(`用户添加失败: ${err.message}`, 'error');
+    }
+  }
+
+  async function updateUser(id, userData) {
+    try {
+      await apiUpdateUser(id, userData);
+      feedback.show('用户更新成功', 'success');
+      await fetchUsers(pagination.value.page);
+    } catch (err) {
+      feedback.show(`用户更新失败: ${err.message}`, 'error');
+    }
+  }
+
+  async function deleteUser(id) {
+    try {
+      await apiDeleteUser(id);
+      feedback.show('用户删除成功', 'success');
+      await fetchUsers(pagination.value.page);
+    } catch (err) {
+      feedback.show(`用户删除失败: ${err.message}`, 'error');
+    }
+  }
+
+  // Roles
+  async function fetchRoles() {
+    try {
+      roles.value = await getRoles();
+    } catch (err) {
+        feedback.show(`角色列表加载失败: ${err.message}`, 'error');
+    }
+  }
   
-  async function saveItem(type, data) {
-    const collectionRef = { user: users, role: roles, org: organizations }[type];
-    if (!collectionRef) return false;
-
-    if (data.id) {
-      collectionRef.value[data.id] = { ...collectionRef.value[data.id], ...data };
-    } else {
-      const newId = Date.now();
-      const newItem = { ...data, id: newId };
-      if (type === 'user') newItem.lastLogin = new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-');
-      if (type === 'org') newItem.userCount = 0;
-      collectionRef.value[newId] = newItem;
-    }
-    feedback.show('保存成功', 'success');
-    return true;
+  async function addRole(roleData) {
+      try {
+          await apiAddRole(roleData);
+          feedback.show('角色添加成功', 'success');
+          await fetchRoles();
+      } catch (err) {
+          feedback.show(`角色添加失败: ${err.message}`, 'error');
+      }
   }
 
-  async function savePermissions(roleId, newPermissions) {
-    if (roles.value[roleId]) {
-      roles.value[roleId].permissions = newPermissions;
+  async function updateRole(id, roleData) {
+      try {
+          await apiUpdateRole(id, roleData);
+          feedback.show('角色更新成功', 'success');
+          await fetchRoles();
+      } catch (err) {
+          feedback.show(`角色更新失败: ${err.message}`, 'error');
+      }
+  }
+
+  async function deleteRole(id) {
+      try {
+          await apiDeleteRole(id);
+          feedback.show('角色删除成功', 'success');
+          await fetchRoles();
+      } catch (err) {
+          feedback.show(`角色删除失败: ${err.message}`, 'error');
+      }
+  }
+
+  // Permissions
+  async function fetchRolePermissions(roleId) {
+    isLoading.value = true;
+    try {
+      permissions.value = await getRolePermissions(roleId);
+    } catch (err) {
+      feedback.show(`权限加载失败: ${err.message}`, 'error');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function updateRolePermissions(roleId, keys) {
+    try {
+      await apiUpdateRolePermissions(roleId, keys);
       feedback.show('权限更新成功', 'success');
-      return true;
+    } catch (err) {
+      feedback.show(`权限更新失败: ${err.message}`, 'error');
     }
-    return false;
+  }
+  
+  // Organizations
+  async function fetchOrganizationTree() {
+    try {
+      organizationTree.value = await getOrganizationTree();
+    } catch (err) {
+      feedback.show(`组织架构加载失败: ${err.message}`, 'error');
+    }
+  }
+  
+  async function addOrganization(orgData) {
+      try {
+          await apiAddOrganization(orgData);
+          feedback.show('组织添加成功', 'success');
+          await fetchOrganizationTree();
+      } catch (err) {
+          feedback.show(`组织添加失败: ${err.message}`, 'error');
+      }
   }
 
-  function canDeleteItem(type, item) {
-    if (type === 'org') {
-      const hasChildren = orgList.value.some(org => org.parent === item.name && org.id !== item.id);
-      if (hasChildren) {
-        feedback.show(`无法删除：组织 "${item.name}" 被用作其他组织的上级。`, 'error');
-        return false;
+  async function updateOrganization(id, orgData) {
+      try {
+          await apiUpdateOrganization(id, orgData);
+          feedback.show('组织更新成功', 'success');
+          await fetchOrganizationTree();
+      } catch (err) {
+          feedback.show(`组织更新失败: ${err.message}`, 'error');
       }
-      const hasUsers = userList.value.some(user => user.organization === item.name);
-      if (hasUsers) {
-        feedback.show(`无法删除：组织 "${item.name}" 下仍有用户，请先转移用户。`, 'error', 5000);
-        return false;
-      }
-    }
-    if (type === 'role') {
-        const hasUsers = userList.value.some(user => user.role === item.name);
-        if(hasUsers) {
-            feedback.show(`无法删除：角色 "${item.name}" 仍有用户在使用。`, 'error', 5000);
-            return false;
-        }
-    }
-    return true;
   }
 
-  async function deleteItem(type, itemId) {
-    const collectionRef = { user: users, role: roles, org: organizations }[type];
-    if (collectionRef.value[itemId]) {
-      const itemName = collectionRef.value[itemId].name;
-      delete collectionRef.value[itemId];
-      feedback.show(`“${itemName}”已删除`, 'success');
-      return true;
+  async function deleteOrganization(id) {
+    try {
+        await apiDeleteOrganization(id);
+        feedback.show('组织删除成功', 'success');
+        await fetchOrganizationTree();
+    } catch (err) {
+        feedback.show(`组织删除失败: ${err.message}`, 'error');
     }
-    return false;
   }
 
   return {
-    users, roles, organizations, allPermissions,
-    userList, roleList, orgList,
-    usersWithDetails, roleNames, orgNames, userNames,
-    saveItem,
-    savePermissions,
-    canDeleteItem,
-    deleteItem,
-    fetchData,
+    users,
+    roles,
+    organizationTree,
+    permissions,
+    allPermissions,
+    isLoading,
+    error,
+    pagination,
+    roleList,
+    orgListForSelect,
+    fetchAll,
+    fetchUsers,
+    addUser,
+    updateUser,
+    deleteUser,
+    fetchRoles,
+    addRole,
+    updateRole,
+    deleteRole,
+    fetchRolePermissions,
+    updateRolePermissions,
+    fetchOrganizationTree,
+    addOrganization,
+    updateOrganization,
+    deleteOrganization,
   };
 });

@@ -1,36 +1,93 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getMonitoringData } from '@/services/api';
+import { getMonitoringArticles, getArticleDetail } from '@/services/api';
+import { useFeedbackStore } from './feedbackStore';
 
 export const useMonitoringStore = defineStore('monitoring', () => {
-  const topNews = ref([]);
-  const riskNews = ref([]);
+  const articles = ref([]);
+  const pagination = ref({
+    page: 1,
+    pageSize: 10,
+    totalRecords: 0,
+    totalPages: 1,
+  });
+  const filters = ref({
+    type: 'all', // 'all', 'news', 'risk'
+    keyword: '',
+  });
+  const currentArticle = ref(null);
+  const isLoading = ref(false);
+  const error = ref(null);
+  const feedback = useFeedbackStore();
 
-  async function fetchData() {
-    const { data, error } = await getMonitoringData();
-    if (error) {
-        console.error("Failed to fetch monitoring data", error);
-        return;
+  async function fetchArticles(page = 1) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const params = {
+        page: page,
+        pageSize: pagination.value.pageSize,
+        keyword: filters.value.keyword || null,
+        type: filters.value.type !== 'all' ? filters.value.type : null,
+      };
+      const data = await getMonitoringArticles(params);
+      if (data && data.records) {
+        articles.value = data.records;
+        pagination.value = {
+          page: data.page,
+          pageSize: data.pageSize,
+          totalRecords: data.totalRecords,
+          totalPages: data.totalPages,
+        };
+      } else {
+        articles.value = [];
+        // Reset pagination if no data
+        pagination.value = { page: 1, pageSize: 10, totalRecords: 0, totalPages: 1 };
+      }
+    } catch (err) {
+      error.value = err.message;
+      feedback.show(`无法加载资讯列表: ${err.message}`, 'error');
+    } finally {
+      isLoading.value = false;
     }
-    topNews.value = data.topNews;
-    riskNews.value = data.riskNews;
   }
 
-  function getNewsById(id) {
-    return topNews.value.find(a => a.id === id);
+  async function fetchArticleDetail(id) {
+    isLoading.value = true;
+    error.value = null;
+    currentArticle.value = null;
+    try {
+      const data = await getArticleDetail(id);
+      currentArticle.value = data;
+    } catch (err) {
+      error.value = err.message;
+      feedback.show(`无法加载资讯详情: ${err.message}`, 'error');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  function getRiskById(id) {
-    return riskNews.value.find(a => a.id === id);
+  function applyFilters() {
+    fetchArticles(1); // Reset to first page when filters change
+  }
+  
+  function setPage(page) {
+    if (page > 0 && page <= pagination.value.totalPages) {
+      fetchArticles(page);
+    }
   }
 
-  fetchData();
 
   return {
-    topNews,
-    riskNews,
-    getNewsById,
-    getRiskById,
-    fetchData,
+    articles,
+    pagination,
+    filters,
+    currentArticle,
+    isLoading,
+    error,
+    fetchArticles,
+    fetchArticleDetail,
+    applyFilters,
+    setPage,
   };
 });

@@ -67,13 +67,16 @@ export const useDashboardStore = defineStore('dashboard', () => {
   // 3. 新增一个action，用于根据ID或关键词获取图谱
   async function fetchGraphData({ companyId = null, keyword = null } = {}) {
     loading.value = true;
-    const { data, error: err } = await getKnowledgeGraph({ companyId, keyword });
-    if (err) {
+    error.value = null;
+    try {
+      const data = await getKnowledgeGraph({ companyId, keyword });
+      knowledgeGraph.value = data || { nodes: [], edges: [] };
+    } catch (err) {
       error.value = err.message;
-    } else {
-      knowledgeGraph.value = data;
+      knowledgeGraph.value = { nodes: [], edges: [] }; // 在出错时也提供一个空状态
+    } finally {
+      loading.value = false;
     }
-    loading.value = false;
   }
 
   async function fetchAllDashboardData() {
@@ -81,13 +84,13 @@ export const useDashboardStore = defineStore('dashboard', () => {
     error.value = null;
     try {
       const [
-        metricsRes,
-        distributionRes,
-        healthRes,
-        supplyChainRes,
-        analysisRes,
-        mapRes,
-        graphRes // 2. 初始加载时就带上默认搜索参数
+        metricsData,
+        distributionData,
+        healthData,
+        supplyChainData,
+        analysisData,
+        mapData,
+        graphData
       ] = await Promise.all([
         getKeyMetrics(),
         getRiskDistribution(),
@@ -95,34 +98,28 @@ export const useDashboardStore = defineStore('dashboard', () => {
         getSupplyChainRisk(),
         fetchRiskAnalysis({ page: 1, pageSize: 50 }),
         getRiskMap(),
-        getKnowledgeGraph({ keyword: graphOptions.value.searchTerm }) 
+        getKnowledgeGraph({ keyword: graphOptions.value.searchTerm })
       ]);
 
-      // ... (处理其他数据的代码保持不变)
-      if (metricsRes.error) throw new Error(`Failed to fetch key metrics: ${metricsRes.error.message}`);
-      keyMetrics.value = metricsRes.data;
-
-      if (distributionRes.error) throw new Error(`Failed to fetch risk distribution: ${distributionRes.error.message}`);
-      riskDistribution.value = distributionRes.data;
-
-      if (healthRes.error) throw new Error(`Failed to fetch industry health: ${healthRes.error.message}`);
-      industryHealth.value = healthRes.data;
-
-      if (supplyChainRes.error) throw new Error(`Failed to fetch supply chain risk: ${supplyChainRes.error.message}`);
-      supplyChainRisk.value = supplyChainRes.data;
-
-      if (analysisRes.error) throw new Error(`Failed to fetch risk analysis: ${analysisRes.error.message}`);
-      riskAnalysis.value = analysisRes.data;
-
-      if (mapRes.error) throw new Error(`Failed to fetch risk map: ${mapRes.error.message}`);
-      riskMap.value = mapRes.data;
-      
-      if (graphRes.error) throw new Error(`Failed to fetch knowledge graph: ${graphRes.error.message}`);
-      knowledgeGraph.value = graphRes.data;
+      keyMetrics.value = metricsData || [];
+      riskDistribution.value = distributionData || [];
+      industryHealth.value = healthData || { categories: [], values: [] };
+      supplyChainRisk.value = supplyChainData || { indicator: [], data: [] };
+      riskAnalysis.value = analysisData || { records: [] };
+      riskMap.value = mapData || [];
+      knowledgeGraph.value = graphData || { nodes: [], edges: [] };
 
     } catch (e) {
       error.value = e.message;
       console.error("Error fetching dashboard data:", e);
+      // 在捕获到错误时，将所有数据状态重置为空，避免页面因旧数据或undefined而出错
+      keyMetrics.value = [];
+      riskDistribution.value = [];
+      industryHealth.value = { categories: [], values: [] };
+      supplyChainRisk.value = { indicator: [], data: [] };
+      riskAnalysis.value = { records: [] };
+      riskMap.value = [];
+      knowledgeGraph.value = { nodes: [], edges: [] };
     } finally {
       loading.value = false;
     }
@@ -133,7 +130,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const { data, error: err } = await fetchRiskAnalysis({ page, pageSize });
     if (err) {
       error.value = err.message;
-    } else {
+    } else if (data) {
       riskAnalysis.value = data;
     }
     loading.value = false;

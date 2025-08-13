@@ -65,21 +65,32 @@ export const useSupplyChainStore = defineStore('supplyChain', () => {
   // --- Actions ---
   async function getSupplyChainSummary() {
     isLoading.value = true;
-    const { data } = await fetchSummary();
-    summary.value = data;
-    isLoading.value = false;
+    error.value = null;
+    try {
+      const data = await fetchSummary();
+      summary.value = data;
+    } catch (err) {
+      error.value = err.message;
+      feedback.show('无法加载供应链概要', 'error');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   async function getSupplyChainCompanies() {
     isLoading.value = true;
-    // Fetch all data and filter/paginate on the client-side
-    const { data, error: err } = await fetchCompanies({ page: 1, pageSize: 5000 });
-    if (err) {
-      feedback.show('无法加载企业列表', 'error');
-    } else {
+    error.value = null;
+    try {
+      // Fetch all data and filter/paginate on the client-side
+      const data = await fetchCompanies({ page: 1, pageSize: 5000 });
       companies.value = data.records || [];
+    } catch (err) {
+      error.value = err.message;
+      feedback.show('无法加载企业列表', 'error');
+      companies.value = []; // Ensure companies is an empty array on error
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   function applyFilters() {

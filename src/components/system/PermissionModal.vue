@@ -26,7 +26,8 @@ import { ref, watch } from 'vue';
 const props = defineProps({
   isOpen: Boolean,
   role: Object,
-  allPermissions: Array
+  allPermissions: Array,
+  assignedPermissions: Array
 });
 
 const emit = defineEmits(['close', 'save']);
@@ -34,8 +35,9 @@ const emit = defineEmits(['close', 'save']);
 const selectedPermissions = ref([]);
 
 watch(() => props.isOpen, (newVal) => {
-  if (newVal && props.role) {
-    selectedPermissions.value = [...props.role.permissions];
+  if (newVal) {
+    // Use assignedPermissions to initialize the selection
+    selectedPermissions.value = props.assignedPermissions ? [...props.assignedPermissions] : [];
   }
 });
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div v-if="authStore.isAuthenticated && !loggingOut" class="app-container">
     <header class="main-header" :class="{ 'header-hidden': isHeaderHidden }">
       <div class="flex items-center">
         <img src="/dec.svg" alt="Logo" class="h-8 w-8 rounded-full" />
@@ -21,6 +21,9 @@
           <img src="/A.svg" class="h-8 w-8 rounded-full" alt="用户头像" />
           <span class="hidden lg:block text-sm font-medium text-slate-300">Admin</span>
         </div>
+        <button @click="handleLogout" class="text-sm font-medium px-3 py-1.5 rounded transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50">
+          退出
+        </button>
       </div>
     </header>
 
@@ -34,15 +37,20 @@
 
     <FeedbackToast />
   </div>
+  <router-view v-else />
 </template>
 
 <script setup>
 import { ref, watch, onUnmounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import FeedbackToast from '@/components/common/FeedbackToast.vue';
+import { useAuthStore } from '@/stores/authStore';
 
 const isHeaderHidden = ref(false);
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const loggingOut = ref(false);
 
 const HEADER_HIDE_THRESHOLD = 80;
 
@@ -67,16 +75,33 @@ const activeNavPath = computed(() => {
   return '/';
 });
 
+const handleLogout = async () => {
+  loggingOut.value = true;
+  await authStore.logout();
+  // 使用 replace 避免用户可以回退到需要认证的页面
+  await router.replace({ name: 'login' });
+  loggingOut.value = false;
+};
 
 const handleMouseMove = (event) => {
   isHeaderHidden.value = event.clientY > HEADER_HIDE_THRESHOLD;
 };
 
 watch(() => route.path, (newPath) => {
-  if (newPath === '/') {
+  if (newPath === '/' && authStore.isAuthenticated) {
     isHeaderHidden.value = true;
     window.addEventListener('mousemove', handleMouseMove);
   } else {
+    isHeaderHidden.value = false;
+    window.removeEventListener('mousemove', handleMouseMove);
+  }
+}, { immediate: true });
+
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth && route.path === '/') {
+     isHeaderHidden.value = true;
+    window.addEventListener('mousemove', handleMouseMove);
+  } else if (!isAuth) {
     isHeaderHidden.value = false;
     window.removeEventListener('mousemove', handleMouseMove);
   }

@@ -16,7 +16,7 @@
       </div>
       <button
         v-if="authStore.hasPermission(['system:users:manage'])"
-        @click="openFormModal(null)"
+        @click="openModalWithPreparation(null)"
         class="btn btn-primary w-full sm:w-auto shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30"
       >
         <i class="fas fa-plus mr-2"></i>新建用户
@@ -51,7 +51,7 @@
         <div class="flex justify-end items-center gap-x-4">
           <button
             v-if="authStore.hasPermission(['system:users:manage'])"
-            @click="openFormModal(item)"
+            @click="openModalWithPreparation(item)"
             class="btn-action text-sky-400 hover:text-sky-300"
           >
             <i class="fas fa-pen mr-1"></i>
@@ -76,7 +76,7 @@
       :item="selectedItem"
       :form-config="userFormConfig"
       :modal-title="modalTitle"
-      @close="isFormModalOpen = false"
+      @close="closeFormModal"
       @submit="handleSubmit"
     />
   </div>
@@ -86,17 +86,17 @@
 import { ref, computed, onMounted } from 'vue';
 import { useSystemManagementStore } from '@/stores/systemManagementStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useCrudModal } from '@/composables/useCrudModal';
 import DataTable from '@/components/common/DataTable.vue';
 import FormModal from './FormModal.vue';
 
 const store = useSystemManagementStore();
 const authStore = useAuthStore();
 
-const searchKeyword = ref('');
-const isFormModalOpen = ref(false);
-const selectedItem = ref(null);
+// 使用组合式函数管理表单模态框
+const { isFormModalOpen, selectedItem, modalTitle, openFormModal, closeFormModal } = useCrudModal('用户');
 
-const modalTitle = computed(() => (selectedItem.value && selectedItem.value.id ? '编辑用户' : '新建用户'));
+const searchKeyword = ref('');
 
 // 定义数据表格的列
 const userColumns = [
@@ -109,6 +109,15 @@ const userColumns = [
   { key: 'actions', label: '操作', headerClass: 'text-right', cellClass: 'text-right' },
 ];
 
+// 递归函数，用于将树形结构的组织扁平化
+function flattenOrganization(org) {
+  const list = [{ id: org.id, name: org.name }];
+  if (org.children && org.children.length > 0) {
+    return list.concat(org.children.flatMap(flattenOrganization));
+  }
+  return list;
+}
+
 // 定义表单模态框的配置
 const userFormConfig = computed(() => ({
   fields: [
@@ -120,15 +129,6 @@ const userFormConfig = computed(() => ({
     { name: 'status', label: '状态', type: 'select', options: [{value: '正常', text: '正常'}, {value: '锁定', text: '锁定'}], required: true },
   ]
 }));
-
-// 递归函数，用于将树形结构的组织扁平化，以便在下拉菜单中显示
-function flattenOrganization(org) {
-  const list = [{ id: org.id, name: org.name }];
-  if (org.children && org.children.length > 0) {
-    return list.concat(org.children.flatMap(flattenOrganization));
-  }
-  return list;
-}
 
 // 组件挂载时，获取初始数据
 onMounted(() => {
@@ -147,11 +147,10 @@ function handlePageChange(page) {
   store.fetchUsers(page, store.pagination.pageSize, searchKeyword.value);
 }
 
-// 打开新建/编辑模态框
-function openFormModal(item) {
+// 打开模态框前的数据准备钩子
+function prepareUserData(item) {
   let roleIds = [];
   if (item && item.roles) {
-    // 将角色的名称数组转换为ID数组，以便在表单中正确回显
     roleIds = store.roles
       .filter(r => item.roles.includes(r.name))
       .map(r => r.id);
@@ -159,20 +158,25 @@ function openFormModal(item) {
 
   let orgId = null;
   if (item && item.organization) {
-    // 将组织名称转换为ID
     const org = store.organizationsTree.flatMap(flattenOrganization).find(o => o.name === item.organization);
     if (org) orgId = org.id;
   }
   
-  selectedItem.value = item ? { ...item, roleIds, organizationId: orgId } : { status: '正常', roleIds: [] };
-  isFormModalOpen.value = true;
+  return item.id 
+    ? { ...item, roleIds, organizationId: orgId } 
+    : { status: '正常', roleIds: [] };
+}
+
+// 打开新建/编辑模态框 (包含数据准备逻辑)
+function openModalWithPreparation(item) {
+  openFormModal(item, prepareUserData);
 }
 
 // 提交表单（新建或更新）
 async function handleSubmit(item) {
   const success = await store.createOrUpdateItem('users', item);
   if (success) {
-    isFormModalOpen.value = false;
+    closeFormModal();
   }
 }
 

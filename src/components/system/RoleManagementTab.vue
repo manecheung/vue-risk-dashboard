@@ -56,7 +56,7 @@
       :item="selectedItem"
       :form-config="roleFormConfig"
       :modal-title="modalTitle"
-      @close="isFormModalOpen = false"
+      @close="closeFormModal"
       @submit="handleSubmit"
     />
 
@@ -64,7 +64,7 @@
     <PermissionModal
       v-if="isPermissionModalOpen"
       :is-open="isPermissionModalOpen"
-      :role="selectedItem"
+      :role="permissionRole"
       :permission-tree-data="permissionData"
       @close="isPermissionModalOpen = false"
       @save="handleSavePermissions"
@@ -73,9 +73,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useSystemManagementStore } from '@/stores/systemManagementStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useCrudModal } from '@/composables/useCrudModal';
 import DataTable from '@/components/common/DataTable.vue';
 import FormModal from './FormModal.vue';
 import PermissionModal from './PermissionModal.vue';
@@ -83,12 +84,13 @@ import PermissionModal from './PermissionModal.vue';
 const store = useSystemManagementStore();
 const authStore = useAuthStore();
 
-const isFormModalOpen = ref(false);
-const isPermissionModalOpen = ref(false);
-const selectedItem = ref(null);
-const permissionData = ref(null); // 存储从后端获取的权限数据
+// 使用组合式函数管理表单模态框
+const { isFormModalOpen, selectedItem, modalTitle, openFormModal, closeFormModal } = useCrudModal('角色');
 
-const modalTitle = computed(() => (selectedItem.value && selectedItem.value.id ? '编辑角色' : '新建角色'));
+// 分配权限模态框的状态
+const isPermissionModalOpen = ref(false);
+const permissionData = ref(null);
+const permissionRole = ref(null);
 
 const roleColumns = [
   { key: 'name', label: '角色名称' },
@@ -108,18 +110,10 @@ onMounted(() => {
   store.fetchRoles();
 });
 
-// 打开新建/编辑模态框
-function openFormModal(item) {
-  selectedItem.value = item ? { ...item } : {};
-  isFormModalOpen.value = true;
-}
-
 // 打开分配权限模态框
 async function openPermissionModal(item) {
-  selectedItem.value = item;
-  // 从 store 获取特定角色的权限信息
+  permissionRole.value = item;
   permissionData.value = await store.getRolePermissions(item.id);
-  console.log('Permission data received from store:', JSON.stringify(permissionData.value));
   if (permissionData.value) {
     isPermissionModalOpen.value = true;
   }
@@ -127,7 +121,7 @@ async function openPermissionModal(item) {
 
 // 保存权限分配
 async function handleSavePermissions(keys) {
-  const success = await store.updateRolePermissions(selectedItem.value.id, keys);
+  const success = await store.updateRolePermissions(permissionRole.value.id, keys);
   if (success) {
     isPermissionModalOpen.value = false;
   }
@@ -137,13 +131,13 @@ async function handleSavePermissions(keys) {
 async function handleSubmit(item) {
   const success = await store.createOrUpdateItem('roles', item);
   if (success) {
-    isFormModalOpen.value = false;
+    closeFormModal();
   }
 }
 
 // 处理删除操作
 function handleDelete(id) {
-  // 可以在这里加入二次确认逻辑
+  // 实际项目中应在此处调用一个确认对话框
   store.deleteItem('roles', id);
 }
 </script>

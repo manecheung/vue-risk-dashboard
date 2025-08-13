@@ -17,7 +17,7 @@
         <span :class="['w-5 h-5 rounded-md border-2 flex-shrink-0 transition-all duration-200 flex items-center justify-center', isSelected ? 'bg-sky-500 border-sky-400' : 'bg-slate-700 border-slate-600 hover:border-slate-500']">
           <i v-if="isSelected" class="fas fa-check text-white text-xs transition-transform duration-200 scale-100"></i>
         </span>
-        <span class="ml-3 text-slate-300">{{ node.title }}</span>
+        <span class="ml-3 text-slate-300">{{ node.name }}</span>
       </label>
     </div>
 

@@ -45,6 +45,15 @@
       @close="isFormModalOpen = false"
       @submit="handleSubmit"
     />
+
+    <!-- 删除确认模态框 -->
+    <ConfirmModal
+      :visible="isConfirmModalOpen"
+      title="确认删除组织"
+      content="您确定要删除该组织吗？如果该组织下有子组织，将一并被删除。此操作不可撤销。"
+      @close="isConfirmModalOpen = false"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
@@ -53,13 +62,16 @@ import { ref, computed, onMounted } from 'vue';
 import { useSystemManagementStore } from '@/stores/systemManagementStore';
 import { useAuthStore } from '@/stores/authStore';
 import FormModal from './FormModal.vue';
-import OrganizationNode from './OrganizationNode.vue'; // 静态导入以支持递归
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
+import OrganizationNode from './OrganizationNode.vue';
 
 const store = useSystemManagementStore();
 const authStore = useAuthStore();
 
 const isFormModalOpen = ref(false);
+const isConfirmModalOpen = ref(false);
 const selectedItem = ref(null);
+const itemToDeleteId = ref(null);
 
 const modalTitle = computed(() => (selectedItem.value && selectedItem.value.id ? '编辑组织' : '新建组织'));
 
@@ -78,7 +90,6 @@ const organizationFormConfig = computed(() => ({
       name: 'parentId',
       label: '上级组织',
       type: 'select',
-      // 将组织树扁平化，用于下拉选择框
       options: [{ value: null, text: '无 (顶级组织)' }].concat(
         store.organizationsTree.flatMap(o => flattenOrganization(o))
           .map(o => ({ value: o.id, text: o.name }))
@@ -88,12 +99,6 @@ const organizationFormConfig = computed(() => ({
   ]
 }));
 
-/**
- * 递归函数，将树形结构的组织扁平化，以便在下拉菜单中显示。
- * @param {object} org - 当前组织节点。
- * @param {string} prefix - 用于表示层级的前缀。
- * @returns {Array} - 扁平化后的组织列表。
- */
 function flattenOrganization(org, prefix = '') {
   const list = [{ id: org.id, name: `${prefix}${org.name}` }];
   if (org.children && org.children.length > 0) {
@@ -102,35 +107,39 @@ function flattenOrganization(org, prefix = '') {
   return list;
 }
 
-// 组件挂载时获取组织数据
 onMounted(() => {
   store.fetchOrganizations();
-  store.fetchAllUsers(); // 获取用户列表用于负责人下拉菜单
+  store.fetchAllUsers();
 });
 
-// 打开新建/编辑模态框
 function openFormModal(item) {
   selectedItem.value = item ? { ...item } : { name: '', manager: '', parentId: null };
   isFormModalOpen.value = true;
 }
 
-// 打开为父组织添加子组织的模态框
 function openAddChildModal(parent) {
   selectedItem.value = { name: '', manager: '', parentId: parent.id };
   isFormModalOpen.value = true;
 }
 
-// 提交表单（新建或更新）
 async function handleSubmit(item) {
   const success = await store.createOrUpdateItem('organizations', item);
   if (success) {
     isFormModalOpen.value = false;
+    store.fetchOrganizations(); // 刷新列表
   }
 }
 
-// 处理删除操作
 function handleDelete(id) {
-  // 实际项目中应在此处调用一个确认对话框
-  store.deleteItem('organizations', id);
+  itemToDeleteId.value = id;
+  isConfirmModalOpen.value = true;
+}
+
+async function confirmDelete() {
+  const success = await store.deleteItem('organizations', itemToDeleteId.value);
+  if (success) {
+    isConfirmModalOpen.value = false;
+    store.fetchOrganizations(); // 刷新列表
+  }
 }
 </script>

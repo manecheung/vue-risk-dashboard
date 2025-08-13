@@ -10,7 +10,7 @@
       <div class="corner-decorator bottom-right"></div>
     </header>
 
-    <KeyMetrics :metrics="store.dashboardData.keyMetrics" />
+    <KeyMetrics :metrics="store.keyMetrics" />
 
     <main class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6" style="height: calc(100vh - 14rem);">
       <section class="lg:col-span-1 grid grid-rows-2 gap-4 lg:gap-6 overflow-hidden"
@@ -18,13 +18,13 @@
         <div class="panel flex-1">
           <h2 id="risk-overview-title" class="panel-title">企业风险情况概览</h2>
           <div class="flex-grow p-2 min-h-0">
-            <RiskPieChart :data="store.dashboardData.riskDistribution" />
+            <RiskPieChart :data="store.riskDistribution" />
           </div>
         </div>
         <div class="panel flex-1 flex flex-col overflow-hidden">
           <h2 id="risk-analysis-title" class="panel-title">企业风险情况解析</h2>
           <div class="flex-grow min-h-0 overflow-auto custom-scrollbar">
-            <RiskAnalysisTable :data="store.dashboardData.riskAnalysis" />
+            <RiskAnalysisTable :data="store.riskAnalysis.records" />
           </div>
         </div>
       </section>
@@ -46,36 +46,31 @@
           class="flex-shrink-0 flex flex-wrap items-center justify-between gap-y-2 p-2 border-b border-slate-800 bg-slate-900/20 text-sm">
           <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-2">
-              <label for="graphLayout" class="text-slate-400">布局:</label>
-              <div class="w-24">
-                <CustomSelect id="graphLayout" v-model="store.graphOptions.layout" :options="store.layoutOptions" />
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
               <p class="text-slate-400" id="relation-filter-label">关系:</p>
               <div class="flex items-center space-x-3" role="group" aria-labelledby="relation-filter-label">
                 <label class="flex items-center cursor-pointer"><input type="checkbox"
-                    v-model="store.graphOptions.filters.supplier" class="form-checkbox mr-1">供应</label>
-                <label class="flex items-center cursor-pointer"><input type="checkbox"
-                    v-model="store.graphOptions.filters.customer" class="form-checkbox mr-1">销售</label>
+                    v-model="store.graphOptions.filters.supplier" class="form-checkbox mr-1">竞争</label>
+                <!-- <label class="flex items-center cursor-pointer"><input type="checkbox"
+                    v-model="store.graphOptions.filters.customer" class="form-checkbox mr-1">销售</label> -->
                 <label class="flex items-center cursor-pointer"><input type="checkbox"
                     v-model="store.graphOptions.filters.partner" class="form-checkbox mr-1">合作</label>
               </div>
             </div>
           </div>
           <div class="flex items-center space-x-2">
-            <input type="text" v-model="store.graphOptions.searchTerm" class="form-input p-1 text-xs w-36"
+            <input type="text" v-model="store.graphOptions.searchTerm" @keydown.enter="executeSearch" class="form-input p-1 text-xs w-36"
               placeholder="搜索企业名称...">
+            <button @click="executeSearch" class="btn btn-primary text-xs px-2 py-1">搜索</button>
             <button @click="resetGraph" class="btn btn-secondary text-xs px-2 py-1">重置</button>
           </div>
         </div>
 
         <div class="flex-grow p-1 min-h-0 relative">
           <KnowledgeGraph v-if="store.activeView === 'graph'" ref="knowledgeGraphRef"
-            :data="store.dashboardData.knowledgeGraph" :options="store.graphOptions" :reset-signal="resetSignal"
+            :data="store.knowledgeGraph" :options="store.graphOptions" :reset-signal="resetSignal"
             @search-results="handleSearchResults" @search-cleared="handleSearchCleared"
-            @graph-mounted="handleGraphMounted" />
-          <ChinaMap v-if="store.activeView === 'map'" :data="store.dashboardData.mapData" />
+            @graph-mounted="handleGraphMounted" @node-click="handleNodeClick" />
+          <ChinaMap v-if="store.activeView === 'map'" :data="store.riskMap" />
 
           <div v-if="showNoResults"
             class="absolute inset-0 flex items-center justify-center bg-slate-900/50 text-slate-400 text-lg rounded-b-xl pointer-events-none">
@@ -95,11 +90,11 @@
       <section class="lg:col-span-1 space-y-4 lg:space-y-6 flex flex-col" aria-labelledby="industry-analysis-title">
         <div class="panel flex-1">
           <h2 id="industry-analysis-title" class="panel-title">产业链企业健康指数</h2>
-          <HealthBarChart :data="store.dashboardData.industryHealth" />
+          <HealthBarChart :data="store.industryHealth" />
         </div>
         <div class="panel flex-1">
           <h2 class="panel-title">供应链企业风险评估</h2>
-          <RiskRadarChart :data="store.dashboardData.supplyChainRisk" />
+          <RiskRadarChart :data="store.supplyChainRisk" />
         </div>
       </section>
     </main>
@@ -107,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import KeyMetrics from '@/components/dashboard/KeyMetrics.vue';
 import RiskPieChart from '@/components/dashboard/RiskPieChart.vue';
@@ -130,7 +125,7 @@ const knowledgeGraphRef = ref(null);
 const relationTypeToLabel = (type) => {
   const map = {
     supplier: '竞争',
-    customer: '销售',
+    // customer: '销售',
     partner: '合作',
   };
   return map[type] || type;
@@ -140,10 +135,21 @@ const showNoResults = computed(() => {
   return isGraphReady.value && store.graphOptions.searchTerm && !searchHasResults.value;
 });
 
+const executeSearch = () => {
+  // 如果搜索词为空，则设置为默认值
+  if (!store.graphOptions.searchTerm || store.graphOptions.searchTerm.trim() === '') {
+    store.graphOptions.searchTerm = '东方电气';
+  }
+  // 调用 store action 执行搜索
+  store.fetchGraphData({ keyword: store.graphOptions.searchTerm });
+};
+
 const resetGraph = () => {
   store.resetGraphOptions();
   resetSignal.value++;
   searchHasResults.value = true;
+  // 重置后也立即获取默认图谱
+  store.fetchGraphData({ keyword: store.graphOptions.searchTerm });
 };
 
 const handleSearchResults = (count) => {
@@ -160,4 +166,12 @@ const handleSearchCleared = () => {
 const handleGraphMounted = () => {
   isGraphReady.value = true;
 };
+
+const handleNodeClick = (companyId) => {
+  store.fetchGraphData({ companyId });
+};
+
+onMounted(() => {
+  store.fetchAllDashboardData();
+});
 </script>

@@ -15,7 +15,7 @@
     </button>
     <Transition name="page-fade">
       <ul v-if="isOpen"
-        class="panel panel-simple absolute top-full right-0 mt-2 w-full p-2 z-30 backdrop-blur-md max-h-60 overflow-y-auto"
+        :class="panelClasses"
         role="listbox" :aria-activedescendant="focusedOptionId">
         <li v-for="(option, index) in options" :key="index" :id="`option-${uid}-${index}`" role="option"
           :aria-selected="modelValue === getOptionValue(option)" @click="selectOption(option)"
@@ -43,6 +43,10 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '请选择'
+  },
+  direction: {
+    type: String,
+    default: 'down' // 'down' or 'up'
   }
 });
 
@@ -54,6 +58,12 @@ const focusedIndex = ref(-1);
 
 const uid = Math.random().toString(36).substring(2, 9);
 const labelId = `select-label-${uid}`;
+
+const panelClasses = computed(() => ({
+  'panel panel-simple absolute right-0 w-full p-2 z-30 backdrop-blur-md max-h-60 overflow-y-auto': true,
+  'top-full mt-2': props.direction === 'down',
+  'bottom-full mb-2': props.direction === 'up',
+}));
 
 const isObjectArray = computed(() => props.options.length > 0 && typeof props.options[0] === 'object' && props.options[0] !== null);
 

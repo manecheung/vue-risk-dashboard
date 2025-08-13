@@ -22,7 +22,7 @@ const props = defineProps({
 });
 
 // 重点: 确保 defineEmits 中包含了 'search-cleared'
-const emit = defineEmits(['search-results', 'search-cleared', 'graph-mounted']);
+const emit = defineEmits(['search-results', 'search-cleared', 'graph-mounted', 'node-click']);
 
 const { data, options, resetSignal } = toRefs(props);
 const { containerRef, resetView, legendData } = useG6(data, options, emit);

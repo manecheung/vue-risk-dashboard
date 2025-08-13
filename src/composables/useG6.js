@@ -113,12 +113,18 @@ export function useG6(data, options, emit) { // 接收 emit 以便向父组件�
       graphInstance.on('node:click', (e) => {
         if (!e.item || e.item.destroyed) return;
 
+        const nodeItem = e.item;
+        const nodeId = nodeItem.getID();
+
+        // 触发节点点击事件，将ID传递给父组件
+        if (emit) emit('node-click', nodeId);
+
+        // --- 以下为原有的高亮逻辑，保持不变 ---
         interactionState.value = INTERACTION_STATE.NODE_SELECTED;
         clearAllStats();
 
-        const node = e.item;
-        const relatedEdges = node.getEdges();
-        const highlightNodes = new Set([node.getID()]);
+        const relatedEdges = nodeItem.getEdges();
+        const highlightNodes = new Set([nodeId]);
         relatedEdges.forEach(edge => {
           graphInstance.setItemState(edge, 'highlight', true);
           highlightNodes.add(edge.getSource().getID());
@@ -126,8 +132,6 @@ export function useG6(data, options, emit) { // 接收 emit 以便向父组件�
         });
         graphInstance.getNodes().forEach(n => graphInstance.setItemState(n, highlightNodes.has(n.getID()) ? 'highlight' : 'dark'));
         graphInstance.getEdges().forEach(e => { if (!e.hasState('highlight')) graphInstance.setItemState(e, 'dark', true); });
-
-        // if (emit) emit('search-cleared');
       });
 
       graphInstance.on('canvas:click', () => {

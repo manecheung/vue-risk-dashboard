@@ -1,259 +1,189 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import {
-  getUsers,
-  addUser as apiAddUser,
-  updateUser as apiUpdateUser,
-  deleteUser as apiDeleteUser,
-  getRoles,
-  addRole as apiAddRole,
-  updateRole as apiUpdateRole,
-  deleteRole as apiDeleteRole,
-  getRolePermissions,
-  updateRolePermissions as apiUpdateRolePermissions,
-  getOrganizationTree,
-  addOrganization as apiAddOrganization,
-  updateOrganization as apiUpdateOrganization,
-  deleteOrganization as apiDeleteOrganization,
-} from '@/services/api';
+import { ref } from 'vue';
+import api from '@/services/api';
 import { useFeedbackStore } from './feedbackStore';
 
 export const useSystemManagementStore = defineStore('systemManagement', () => {
   const feedback = useFeedbackStore();
 
-  // --- State ---
+  // 状态 (State)
   const users = ref([]);
+  const allUsers = ref([]); // For dropdowns
   const roles = ref([]);
-  const organizationTree = ref([]);
-  const permissions = ref({ assignedKeys: [], permissionTree: [] });
+  const organizationsTree = ref([]);
   
-  // 与后端 DataInitializer.java 保持同步
-  const allPermissions = ref([
-    'dashboard', 
-    'dashboard:view', 
-    'monitoring', 
-    'monitoring:view', 
-    'chain-risk', 
-    'chain-risk:view', 
-    'chain-risk:manage', 
-    'supply-chain', 
-    'supply-chain:view', 
-    'supply-chain:manage', 
-    'system', 
-    'system:users:manage', 
-    'system:roles:manage', 
-    'system:orgs:manage'
-  ]);
-
-  const isLoading = ref(false);
-  const error = ref(null);
-  const pagination = ref({ page: 1, pageSize: 10, totalRecords: 0, totalPages: 1 });
-
-  // --- Getters ---
-  const roleList = computed(() => roles.value.map(r => ({ id: r.id, name: r.name, description: r.description })));
-  const orgListForSelect = computed(() => {
-      const list = [];
-      function flatten(nodes) {
-          for (const node of nodes) {
-              list.push({ id: node.id, name: node.name });
-              if (node.children && node.children.length > 0) {
-                  flatten(node.children);
-              }
-          }
-      }
-      flatten(organizationTree.value);
-      return list;
+  const pagination = ref({
+    page: 1,
+    pageSize: 10,
+    totalRecords: 0,
+    totalPages: 1,
   });
+  const loading = ref(false);
 
-  // --- Actions ---
+  // 操作 (Actions)
 
-  async function fetchAll() {
-    isLoading.value = true;
-    error.value = null;
+  /**
+   * 获取用户列表（分页）
+   * @param {number} page - 页码
+   * @param {number} pageSize - 每页数量
+   * @param {string} keyword - 搜索关键词
+   */
+  async function fetchUsers(page = 1, pageSize = 10, keyword = '') {
+    loading.value = true;
     try {
-      await Promise.all([
-        fetchUsers(),
-        fetchRoles(),
-        fetchOrganizationTree(),
-      ]);
-    } catch (err) {
-      error.value = err.message;
-      feedback.show('系统管理核心数据加载失败', 'error');
+      const params = { page, pageSize };
+      if (keyword) {
+        params.keyword = keyword;
+      }
+      const response = await api.get('/system/users', { params });
+      const data = response.data.data;
+      users.value = data.records; // 后端返回的是 records
+      pagination.value = {
+        page: data.page,
+        pageSize: data.pageSize,
+        totalRecords: data.totalRecords,
+        totalPages: data.totalPages,
+      };
+    } catch (error) {
+      // 修正：调用正确的 feedbackStore 方法
+      feedback.show('获取用户列表失败: ' + (error.response?.data?.message || '您可能没有权限查看用户，或网络发生错误。'), 'error');
     } finally {
-      isLoading.value = false;
+      loading.value = false;
     }
   }
 
-  // Users
-  async function fetchUsers(page = 1, keyword = '') {
-    isLoading.value = true;
+  /**
+   * 获取所有用户，用于下拉列表
+   */
+  async function fetchAllUsers() {
     try {
-      const params = { page, pageSize: pagination.value.pageSize, keyword: keyword || null };
-      const data = await getUsers(params);
-      users.value = data.records;
-      pagination.value = { ...pagination.value, ...data };
-    } catch (err) {
-      error.value = err.message;
-      feedback.show(`用户列表加载失败: ${err.message}`, 'error');
-    } finally {
-      isLoading.value = false;
+      const response = await api.get('/system/users', { params: { page: 1, pageSize: 9999 } });
+      allUsers.value = response.data.data.records;
+    } catch (error) {
+      feedback.show('获取所有用户列表失败: ' + (error.response?.data?.message || '网络错误'), 'error');
     }
   }
 
-  async function addUser(userData) {
-    try {
-      await apiAddUser(userData);
-      feedback.show('用户添加成功', 'success');
-      await fetchUsers(pagination.value.page);
-    } catch (err) {
-      feedback.show(`用户添加失败: ${err.message}`, 'error');
-    }
-  }
-
-  async function updateUser(id, userData) {
-    try {
-      await apiUpdateUser(id, userData);
-      feedback.show('用户更新成功', 'success');
-      await fetchUsers(pagination.value.page);
-    } catch (err) {
-      feedback.show(`用户更新失败: ${err.message}`, 'error');
-    }
-  }
-
-  async function deleteUser(id) {
-    try {
-      await apiDeleteUser(id);
-      feedback.show('用户删除成功', 'success');
-      await fetchUsers(pagination.value.page);
-    } catch (err) {
-      feedback.show(`用户删除失败: ${err.message}`, 'error');
-    }
-  }
-
-  // Roles
+  /**
+   * 获取所有角色
+   */
   async function fetchRoles() {
+    loading.value = true;
     try {
-      roles.value = await getRoles();
-    } catch (err) {
-        feedback.show(`角色列表加载失败: ${err.message}`, 'error');
-    }
-  }
-  
-  async function addRole(roleData) {
-      try {
-          await apiAddRole(roleData);
-          feedback.show('角色添加成功', 'success');
-          await fetchRoles();
-      } catch (err) {
-          feedback.show(`角色添加失败: ${err.message}`, 'error');
-      }
-  }
-
-  async function updateRole(id, roleData) {
-      try {
-          await apiUpdateRole(id, roleData);
-          feedback.show('角色更新成功', 'success');
-          await fetchRoles();
-      } catch (err) {
-          feedback.show(`角色更新失败: ${err.message}`, 'error');
-      }
-  }
-
-  async function deleteRole(id) {
-      try {
-          await apiDeleteRole(id);
-          feedback.show('角色删除成功', 'success');
-          await fetchRoles();
-      } catch (err) {
-          feedback.show(`角色删除失败: ${err.message}`, 'error');
-      }
-  }
-
-  // Permissions
-  async function fetchRolePermissions(roleId) {
-    isLoading.value = true;
-    try {
-      permissions.value = await getRolePermissions(roleId);
-    } catch (err) {
-      feedback.show(`权限加载失败: ${err.message}`, 'error');
+      const response = await api.get('/system/roles');
+      roles.value = response.data.data;
+    } catch (error) {
+      // 修正：调用正确的 feedbackStore 方法
+      feedback.show('获取角色列表失败: ' + (error.response?.data?.message || '您可能没有权限查看角色，或网络发生错误。'), 'error');
     } finally {
-      isLoading.value = false;
+      loading.value = false;
     }
   }
 
-  async function updateRolePermissions(roleId, keys) {
+  /**
+   * 获取组织架构树
+   */
+  async function fetchOrganizations() {
+    loading.value = true;
     try {
-      await apiUpdateRolePermissions(roleId, keys);
-      feedback.show('权限更新成功', 'success');
-    } catch (err) {
-      feedback.show(`权限更新失败: ${err.message}`, 'error');
+      const response = await api.get('/system/organizations');
+      organizationsTree.value = response.data.data;
+    } catch (error) {
+      // 修正：调用正确的 feedbackStore 方法
+      feedback.show('获取组织结构失败: ' + (error.response?.data?.message || '您可能没有权限查看组织，或网络发生错误。'), 'error');
+    } finally {
+      loading.value = false;
     }
   }
-  
-  // Organizations
-  async function fetchOrganizationTree() {
+
+  /**
+   * 根据角色ID获取其权限信息
+   * @param {number} roleId - 角色ID
+   */
+  async function getRolePermissions(roleId) {
     try {
-      organizationTree.value = await getOrganizationTree();
-    } catch (err) {
-      feedback.show(`组织架构加载失败: ${err.message}`, 'error');
+      const response = await api.get(`/system/roles/${roleId}/permissions`);
+      return response.data.data; // 返回 { assignedKeys, permissionTree }
+    } catch (error) {
+      feedback.show('获取角色权限失败: ' + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
+      return null;
     }
   }
-  
-  async function addOrganization(orgData) {
-      try {
-          await apiAddOrganization(orgData);
-          feedback.show('组织添加成功', 'success');
-          await fetchOrganizationTree();
-      } catch (err) {
-          feedback.show(`组织添加失败: ${err.message}`, 'error');
-      }
-  }
 
-  async function updateOrganization(id, orgData) {
-      try {
-          await apiUpdateOrganization(id, orgData);
-          feedback.show('组织更新成功', 'success');
-          await fetchOrganizationTree();
-      } catch (err) {
-          feedback.show(`组织更新失败: ${err.message}`, 'error');
-      }
-  }
-
-  async function deleteOrganization(id) {
+  /**
+   * 更新角色的权限
+   * @param {number} roleId - 角色ID
+   * @param {string[]} permissionKeys - 权限键名数组
+   */
+  async function updateRolePermissions(roleId, permissionKeys) {
     try {
-        await apiDeleteOrganization(id);
-        feedback.show('组织删除成功', 'success');
-        await fetchOrganizationTree();
-    } catch (err) {
-        feedback.show(`组织删除失败: ${err.message}`, 'error');
+      await api.put(`/system/roles/${roleId}/permissions`, { permissionKeys });
+      feedback.show('权限更新成功！', 'success');
+      return true;
+    } catch (error) {
+      feedback.show('权限更新失败: ' + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
+      return false;
+    }
+  }
+
+  /**
+   * 通用的创建或更新函数
+   * @param {'users' | 'roles' | 'organizations'} type - 操作的类型
+   * @param {object} item - 要创建或更新的数据项
+   */
+  async function createOrUpdateItem(type, item) {
+    const isCreating = !item.id;
+    const url = isCreating ? `/system/${type}` : `/system/${type}/${item.id}`;
+    const method = isCreating ? 'post' : 'put';
+
+    try {
+      await api[method](url, item);
+      feedback.show(`${isCreating ? '创建' : '更新'}成功！`, 'success');
+      // 操作成功后刷新对应的数据
+      if (type === 'users') await fetchUsers(pagination.value.page, pagination.value.pageSize);
+      else if (type === 'roles') await fetchRoles();
+      else if (type === 'organizations') await fetchOrganizations();
+      return true;
+    } catch (error) {
+      feedback.show(`${isCreating ? '创建' : '更新'}失败: ` + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
+      return false;
+    }
+  }
+
+  /**
+   * 通用的删除函数
+   * @param {'users' | 'roles' | 'organizations'} type - 操作的类型
+   * @param {number} id - 要删除的数据项ID
+   */
+  async function deleteItem(type, id) {
+    try {
+      await api.delete(`/system/${type}/${id}`);
+      feedback.show('删除成功！', 'success');
+      // 操作成功后刷新对应的数据
+      if (type === 'users') await fetchUsers(pagination.value.page, pagination.value.pageSize);
+      else if (type === 'roles') await fetchRoles();
+      else if (type === 'organizations') await fetchOrganizations();
+      return true;
+    } catch (error) {
+      feedback.show('删除失败: ' + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
+      return false;
     }
   }
 
   return {
     users,
+    allUsers, // <-- export new state
     roles,
-    organizationTree,
-    permissions,
-    allPermissions,
-    isLoading,
-    error,
+    organizationsTree,
     pagination,
-    roleList,
-    orgListForSelect,
-    fetchAll,
+    loading,
     fetchUsers,
-    addUser,
-    updateUser,
-    deleteUser,
+    fetchAllUsers, // <-- export new action
     fetchRoles,
-    addRole,
-    updateRole,
-    deleteRole,
-    fetchRolePermissions,
+    fetchOrganizations,
+    getRolePermissions,
     updateRolePermissions,
-    fetchOrganizationTree,
-    addOrganization,
-    updateOrganization,
-    deleteOrganization,
+    createOrUpdateItem,
+    deleteItem,
   };
 });

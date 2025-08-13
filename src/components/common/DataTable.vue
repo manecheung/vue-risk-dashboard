@@ -3,7 +3,7 @@
     <table class="w-full text-sm" :style="{ minWidth: minWidth }" :aria-label="ariaLabel">
       <thead class="sticky top-0 bg-slate-900/50 backdrop-blur-sm z-10">
         <tr class="border-b border-slate-700">
-          <th v-for="col in columns" :key="col.key" scope="col" class="p-3 font-medium text-slate-300 whitespace-nowrap"
+          <th v-for="col in columns" :key="col.key" scope="col" class="p-3 font-medium text-slate-300 whitespace-nowrap align-middle"
             :class="[
               col.headerClass,
               { 'cursor-pointer hover:text-white': col.sortable }
@@ -20,7 +20,7 @@
       </thead>
       <tbody class="text-slate-400">
         <tr v-if="isLoading">
-          <td :colspan="columns.length" class="p-8 text-center text-slate-500">
+          <td :colspan="columns.length" class="p-8 text-center text-slate-500 align-middle">
             <div class="flex items-center justify-center text-sky-400">
               <svg class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
@@ -34,13 +34,13 @@
           </td>
         </tr>
         <tr v-else-if="!items || items.length === 0">
-          <td :colspan="columns.length">
+          <td :colspan="columns.length" class="align-middle">
             <EmptyState :title="emptyMessage" message="请检查您的筛选条件或等待数据同步。" />
           </td>
         </tr>
         <tr v-else v-for="(item, index) in items" :key="item.id || index"
           class="border-b border-slate-800 hover:bg-sky-500/10 transition-colors">
-          <td v-for="col in columns" :key="`${item.id || index}-${col.key}`" class="p-3" :class="col.cellClass">
+          <td v-for="col in columns" :key="`${item.id || index}-${col.key}`" class="p-3 align-middle" :class="col.cellClass">
             <slot :name="`cell-${col.key}`" :item="item" :column="col">
               {{ item[col.key] }}
             </slot>

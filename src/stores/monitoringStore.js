@@ -78,6 +78,23 @@ export const useMonitoringStore = defineStore('monitoring', () => {
   }
 
 
+  function reset() {
+    articles.value = [];
+    pagination.value = {
+      page: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 1,
+    };
+    filters.value = {
+      type: 'all',
+      keyword: '',
+    };
+    currentArticle.value = null;
+    isLoading.value = false;
+    error.value = null;
+  }
+
   return {
     articles,
     pagination,
@@ -89,5 +106,6 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     fetchArticleDetail,
     applyFilters,
     setPage,
+    reset, // 暴露 reset 方法
   };
 });

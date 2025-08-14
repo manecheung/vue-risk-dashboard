@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import api from '@/services/api';
 import { useFeedbackStore } from './feedbackStore';
 
@@ -19,6 +19,21 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     totalPages: 1,
   });
   const loading = ref(false);
+
+  // --- Getters ---
+  const organizationsWithManagerNames = computed(() => {
+    const userMap = new Map(allUsers.value.map(u => [u.id, u.name]));
+    
+    function enrichTree(nodes) {
+      return nodes.map(node => {
+        const managerName = userMap.get(node.managerId) || '未指定';
+        const children = node.children ? enrichTree(node.children) : null;
+        return { ...node, manager: managerName, children };
+      });
+    }
+    
+    return enrichTree(organizationsTree.value);
+  });
 
   // --- 用户管理 Actions ---
   async function fetchUsers(page = 1, pageSize = 10, keyword = '') {
@@ -151,7 +166,10 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     try {
       await api[method](url, item);
       feedback.show(`${isCreating ? '创建' : '更新'}成功！`, 'success');
-      if (type === 'users') await fetchUsers(pagination.value.page, pagination.value.pageSize);
+      if (type === 'users') {
+        await fetchUsers(pagination.value.page, pagination.value.pageSize);
+        await fetchAllUsers(); // <-- 关键改动：刷新所有用户列表
+      }
       else if (type === 'roles') await fetchRoles();
       return true;
     } catch (error) {
@@ -178,6 +196,34 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     }
   }
 
+  function reset() {
+    users.value = [];
+    allUsers.value = [];
+    roles.value = [];
+    organizationsTree.value = [];
+    pagination.value = {
+      page: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 1,
+    };
+    loading.value = false;
+  }
+
+  function reset() {
+    users.value = [];
+    allUsers.value = [];
+    roles.value = [];
+    organizationsTree.value = [];
+    pagination.value = {
+      page: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 1,
+    };
+    loading.value = false;
+  }
+
   return {
     users,
     allUsers,
@@ -191,12 +237,12 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     fetchOrganizations,
     getRolePermissions,
     updateRolePermissions,
-    // 组织管理的专属 Actions
     createOrganization,
     updateOrganization,
     deleteOrganization,
-    // 通用 Actions
     createOrUpdateItem,
     deleteItem,
+    organizationsWithManagerNames,
+    reset,
   };
 });

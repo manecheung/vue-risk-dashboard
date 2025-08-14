@@ -136,6 +136,34 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading.value = false;
   }
 
+  function reset() {
+    keyMetrics.value = [];
+    riskDistribution.value = [];
+    industryHealth.value = { categories: [], values: [] };
+    supplyChainRisk.value = { indicator: [], data: [] };
+    riskAnalysis.value = {
+      records: [],
+      page: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 1,
+    };
+    riskMap.value = [];
+    knowledgeGraph.value = { nodes: [], edges: [] };
+    loading.value = false;
+    error.value = null;
+    activeView.value = 'graph';
+    graphOptions.value = {
+      layout: 'force',
+      filters: {
+        supplier: true,
+        customer: true,
+        partner: true,
+      },
+      searchTerm: '东方电气',
+    };
+  }
+
   return {
     // Data state
     keyMetrics,
@@ -157,5 +185,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     fetchAllDashboardData,
     getRiskAnalysis,
     fetchGraphData, // 暴露新方法
+    reset, // 暴露 reset 方法
   };
 });

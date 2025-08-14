@@ -17,11 +17,10 @@
         <i class="fas fa-spinner fa-spin mr-2"></i>
         加载中...
       </div>
-      <!-- 使用 :key 来强制刷新整个树，确保DOM在数据变更后完全重新渲染 -->
-      <ul v-else-if="store.organizationsTree.length > 0" :key="JSON.stringify(store.organizationsTree)">
+      <ul v-else-if="store.organizationsWithManagerNames.length > 0">
         <!-- 递归渲染组织节点 -->
         <OrganizationNode
-          v-for="node in store.organizationsTree"
+          v-for="node in store.organizationsWithManagerNames"
           :key="node.id"
           :node="node"
           @edit="openFormModal"
@@ -126,10 +125,10 @@ const organizationFormConfig = computed(() => {
     fields: [
       { name: 'name', label: '组织名称', type: 'text', required: true },
       {
-        name: 'manager',
+        name: 'managerId', // <-- 改动：使用 managerId
         label: '负责人',
         type: 'select',
-        options: store.allUsers?.map(u => ({ value: u.name, text: u.name })) || [],
+        options: store.allUsers?.map(u => ({ value: u.id, text: u.name })) || [], // <-- 改动：value 为 u.id
         required: false,
         placeholder: '请选择负责人'
       },
@@ -163,11 +162,11 @@ const closeFormModal = () => {
 function openFormModal(item) {
   if (item) {
     // 编辑模式
-    selectedItem.value = { ...item };
+    selectedItem.value = { ...item, managerId: item.managerId || null }; // <-- 改动：确保 managerId 存在
     modalTitle.value = '编辑组织';
   } else {
     // 新建根组织模式
-    selectedItem.value = { name: '', manager: null, parentId: null };
+    selectedItem.value = { name: '', managerId: null, parentId: null }; // <-- 改动：使用 managerId
     modalTitle.value = '新建根组织';
   }
   isFormModalOpen.value = true;
@@ -175,7 +174,7 @@ function openFormModal(item) {
 
 // 打开添加子组织模态框
 function openAddChildModal(parent) {
-  selectedItem.value = { name: '', manager: null, parentId: parent.id };
+  selectedItem.value = { name: '', managerId: null, parentId: parent.id }; // <-- 改动：使用 managerId
   modalTitle.value = `在“${parent.name}”下新建组织`;
   isFormModalOpen.value = true;
 }

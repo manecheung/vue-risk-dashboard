@@ -17,9 +17,11 @@
           year:
             'numeric', month: 'long', day: 'numeric'
         }) }}</span>
-        <div class="flex items-center space-x-2">
-          <img src="/A.svg" class="h-8 w-8 rounded-full" alt="用户头像" />
-          <span class="hidden lg:block text-sm font-medium text-slate-300">Admin</span>
+        <div v-if="user" class="flex items-center space-x-2">
+          <div class="flex items-center justify-center w-8 h-8 bg-sky-500 rounded-full text-white font-bold text-sm">
+            {{ userInitial }}
+          </div>
+          <span class="hidden lg:block text-sm font-medium text-slate-300">{{ user.name }}</span>
         </div>
         <button @click="handleLogout" class="text-sm font-medium px-3 py-1.5 rounded transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50">
           退出
@@ -52,22 +54,35 @@ const router = useRouter();
 const authStore = useAuthStore();
 const loggingOut = ref(false);
 
+const user = computed(() => authStore.user);
+const userInitial = computed(() => user.value?.name?.charAt(0).toUpperCase() || 'U');
+
+
 const HEADER_HIDE_THRESHOLD = 80;
 
-const mainNav = [
-  { id: 'dashboard', path: '/', title: '首页看板' },
-  { id: 'monitoring', path: '/monitoring', title: '网络信息监测' },
-  { id: 'chain-risk', path: '/chain-risk', title: '产业链风险预警' },
-  { id: 'supply-chain', path: '/supply-chain', title: '供应链风险评估' },
-  { id: 'system-management', path: '/system-management', title: '系统管理' }
+const allNavItems = [
+  { id: 'dashboard', path: '/', title: '首页看板' }, // No permission needed
+  { id: 'monitoring', path: '/monitoring', title: '网络信息监测', permissions: ['monitoring:view'] },
+  { id: 'chain-risk', path: '/chain-risk', title: '产业链风险预警', permissions: ['chain-risk:view'] },
+  { id: 'supply-chain', path: '/supply-chain', title: '供应链风险评估', permissions: ['supply-chain:view'] },
+  { id: 'system-management', path: '/system-management', title: '系统管理', permissions: ['system'] }
 ];
+
+const mainNav = computed(() => {
+  return allNavItems.filter(item => {
+    if (!item.permissions || item.permissions.length === 0) {
+      return true;
+    }
+    return authStore.hasPermission(item.permissions);
+  });
+});
 
 const activeNavPath = computed(() => {
   const currentPath = route.path;
   if (currentPath === '/') return '/';
 
-  for (let i = mainNav.length - 1; i >= 0; i--) {
-    const navPath = mainNav[i].path;
+  for (let i = mainNav.value.length - 1; i >= 0; i--) {
+    const navPath = mainNav.value[i].path;
     if (navPath !== '/' && currentPath.startsWith(navPath)) {
       return navPath;
     }

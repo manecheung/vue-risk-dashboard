@@ -63,6 +63,7 @@ import PermissionModal from './PermissionModal.vue';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
 
 const store = useSystemManagementStore();
+const { fetchRoles, createOrUpdateItem, deleteItem, getRolePermissions, updateRolePermissions } = store;
 const authStore = useAuthStore();
 
 // --- 状态管理 --- //
@@ -90,7 +91,7 @@ const roleFormConfig = {
 
 // --- 生命周期 --- //
 onMounted(() => {
-  store.fetchRoles();
+  fetchRoles();
 });
 
 // --- 主要方法 --- //
@@ -102,7 +103,7 @@ async function openPermissionModal(item) {
   }
 
   try {
-    const data = await store.getRolePermissions(item.id);
+    const data = await getRolePermissions(item.id);
     if (data) {
       permissionRole.value = item;
       permissionData.value = data;
@@ -125,14 +126,14 @@ const closePermissionModal = () => {
 }
 
 async function handleSavePermissions(keys) {
-  const success = await store.updateRolePermissions(permissionRole.value.id, keys);
+  const success = await updateRolePermissions(permissionRole.value.id, keys);
   if (success) {
     closePermissionModal();
   }
 }
 
 async function handleSubmit(item) {
-  const success = await store.createOrUpdateItem('roles', item);
+  const success = await createOrUpdateItem('roles', item);
   if (success) {
     closeFormModal();
   }
@@ -144,7 +145,7 @@ function handleDelete(id) {
 }
 
 async function confirmDelete() {
-  const success = await store.deleteItem('roles', itemToDeleteId.value);
+  const success = await deleteItem('roles', itemToDeleteId.value);
   if (success) {
     isConfirmModalOpen.value = false;
   }

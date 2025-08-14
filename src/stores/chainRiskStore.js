@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useFeedbackStore } from './feedbackStore';
-import { getSimulations, saveSimulation, deleteSimulation, runSimulation } from '@/services/api';
+import { getSimulations, saveSimulation, deleteSimulation, runSimulation, runNewSimulation, getAllCompanies } from '@/services/api';
 
 export const useChainRiskStore = defineStore('chainRisk', () => {
   const feedback = useFeedbackStore();
 
   // --- State ---
   const simulations = ref([]);
+  const allCompanies = ref([]);
   const pagination = ref({
     page: 1,
     pageSize: 10,
@@ -22,6 +23,32 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
   const currentGraph = ref(null); 
 
   // --- Actions ---
+
+  async function fetchAllCompanies() {
+    try {
+      const companies = await getAllCompanies();
+      allCompanies.value = companies.map(c => ({ id: c.id.toString(), label: c.name }));
+    } catch (err) {
+      feedback.show(`无法加载公司列表: ${err.message}`, 'error');
+    }
+  }
+
+  async function runLiveSimulation(startNodeName) {
+    isGraphLoading.value = true;
+    currentGraph.value = null;
+    try {
+      const result = await runNewSimulation(startNodeName);
+      currentGraph.value = {
+        simulationName: `实时模拟 - ${startNodeName || '未知起点'}`,
+        ...result
+      };
+      feedback.show('实时风险蔓延模拟成功', 'success');
+    } catch (err) {
+      feedback.show(`模拟运行失败: ${err.message}`, 'error');
+    } finally {
+      isGraphLoading.value = false;
+    }
+  }
 
   async function fetchSimulations(page = 1, keyword = '') {
     isLoading.value = true;
@@ -109,12 +136,15 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
 
   return {
     simulations,
+    allCompanies,
     pagination,
     isLoading,
     isGraphLoading, // Expose new state
     error,
     currentGraph,
     fetchSimulations,
+    fetchAllCompanies,
+    runLiveSimulation,
     removeSimulation,
     createSimulation,
     startSimulation,

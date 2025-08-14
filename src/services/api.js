@@ -56,12 +56,15 @@ export const getSimulations = (params) => handleResponse(api.get('/chain-risk/si
 export const saveSimulation = (data) => handleResponse(api.post('/chain-risk/simulations', data));
 export const runSimulation = (id, startNodeId) => handleResponse(api.post(`/chain-risk/simulations/${id}/run`, { startNodeId }));
 export const deleteSimulation = (id) => handleResponse(api.delete(`/chain-risk/simulations/${id}`));
+export const runNewSimulation = (startNodeName) => handleResponse(api.post('/chain-risk/run-new', { startNodeName }));
+
 
 // ==================================================================
 // 供应链管理模块 (Supply Chain)
 // ==================================================================
 export const getSupplyChainSummary = () => handleResponse(api.get('/supply-chain/summary'));
 export const getSupplyChainCompanies = (params) => handleResponse(api.get('/supply-chain/companies', { params }));
+export const getAllCompanies = () => handleResponse(api.get('/supply-chain/all-companies'));
 export const getCompanyDetails = (id) => handleResponse(api.get(`/supply-chain/companies/${id}`));
 export const addCompany = (companyData) => handleResponse(api.post('/supply-chain/companies', companyData));
 export const updateCompany = (id, companyData) => handleResponse(api.put(`/supply-chain/companies/${id}`, companyData));

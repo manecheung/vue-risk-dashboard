@@ -9,7 +9,7 @@
           <select v-model="selectedNode" id="startNode" class="form-input w-full text-sm mt-1">
             <option disabled value="">请选择一个节点</option>
             <option v-for="node in nodes" :key="node.id" :value="node.id">
-              {{ node.label }} (ID: {{ node.id }})
+              {{ node.label }} (ID: {{ node.id }})  
             </option>
           </select>
         </div>

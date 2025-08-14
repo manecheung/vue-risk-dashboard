@@ -18,7 +18,7 @@
       >
         <!-- 模态框主面板 -->
         <div v-if="isOpen" class="w-full max-w-2xl flex flex-col bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl">
-          <h2 class="panel-title text-xl font-semibold px-6 py-4">为角色 "{{ role?.name }}" 分配权限</h2>
+          <h2 class="panel-title text-xl font-semibold px-6 py-4">为角色 "{{ role.name }}" 分配权限</h2>
           
           <!-- 权限树区域 -->
           <div class="px-6 py-2 border-y border-slate-700/80 overflow-y-auto custom-scrollbar" style="max-height: 60vh;">
@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
 import PermissionNode from './PermissionNode.vue';
 
 const props = defineProps({
@@ -151,27 +151,54 @@ const handleToggle = (node) => {
   getDescendantKeys(node.key, allRelatedKeys);
 
   if (isSelected) {
-    // 当前是“全选”状态，则取消选中所有相关节点
+    // 当前是"全选"状态，则取消选中所有相关节点
     allRelatedKeys.forEach(key => newSelectedKeys.delete(key));
   } else {
-    // 当前是“未选”或“不确定”状态，则全选所有相关节点
+    // 当前是"未选"或"不确定"状态，则全选所有相关节点
     allRelatedKeys.forEach(key => newSelectedKeys.add(key));
   }
   selectedKeys.value = newSelectedKeys;
 };
 
-// 监听模态框打开，初始化状态
-watch(() => props.isOpen, (newVal) => {
-  if (newVal && props.permissionTreeData?.assignedKeys) {
-    // 初始的 assignedKeys 可能只包含父节点，需要进行扩展
+// 初始化选中状态
+const initializeSelectedKeys = () => {
+  if (props.permissionTreeData?.assignedKeys) {
+    // 直接使用 assignedKeys 作为初始选中状态
     const initialKeys = new Set(props.permissionTreeData.assignedKeys);
-    const completeKeys = new Set(initialKeys);
-    // 确保如果一个父节点被选中，其所有子孙节点也被隐式选中
+    
+    // 过滤掉不存在于树中的 key
+    const validKeys = new Set();
     initialKeys.forEach(key => {
-      getDescendantKeys(key, completeKeys);
+      if (flatTree.value.has(key)) {
+        validKeys.add(key);
+      }
     });
-    selectedKeys.value = completeKeys;
+    
+    selectedKeys.value = validKeys;
+    console.log('初始化选中的权限:', Array.from(validKeys));
   } else {
+    selectedKeys.value = new Set();
+  }
+};
+
+// 监听权限树数据变化
+watch(() => props.permissionTreeData, (newTreeData) => {
+  if (newTreeData && props.isOpen) {
+    // 使用 nextTick 确保 flatTree 已经更新
+    nextTick(() => {
+      initializeSelectedKeys();
+    });
+  }
+}, { immediate: true });
+
+// 监听模态框开关
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen && props.permissionTreeData) {
+    nextTick(() => {
+      initializeSelectedKeys();
+    });
+  } else if (!isOpen) {
+    // 模态框关闭时清空状态
     selectedKeys.value = new Set();
   }
 });
@@ -180,6 +207,7 @@ watch(() => props.isOpen, (newVal) => {
 const save = () => {
   // 在保存时，我们只需要提交那些在原始树中存在的key
   const keysToSave = Array.from(selectedKeys.value).filter(key => flatTree.value.has(key));
+  console.log('保存的权限:', keysToSave);
   emit('save', keysToSave);
 };
 

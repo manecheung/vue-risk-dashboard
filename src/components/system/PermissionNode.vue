@@ -19,14 +19,13 @@
 
     <!-- 子节点列表 -->
     <ul v-if="hasChildren && isExpanded" class="pl-10 mt-1 pt-1 border-l-2 border-slate-800">
-      <!-- 注意这里，我们将父组件计算好的状态直接传递给子组件 -->
       <PermissionNode
         v-for="child in node.children"
         :key="child.key"
         :node="child"
+        :is-selected="processedTree.get(child.key)?.isSelected || false"
+        :is-indeterminate="processedTree.get(child.key)?.isIndeterminate || false"
         :processed-tree="processedTree"
-        :is-selected="processedTree.get(child.key).isSelected"
-        :is-indeterminate="processedTree.get(child.key).isIndeterminate"
         @toggle="$emit('toggle', $event)"
       />
     </ul>
@@ -36,23 +35,25 @@
 <script setup>
 import { ref, computed } from 'vue';
 
-// 使用 defineOptions 宏来定义组件名称，以便在模板中进行递归引用
+// 定义组件名称，以便在模板中进行递归引用
 defineOptions({
   name: 'PermissionNode'
 });
 
+// 定义组件的 props
 const props = defineProps({
-  node: { type: Object, required: true },
-  // processedTree 是一个 Map，包含所有节点的处理后状态
-  processedTree: { type: Map, required: true },
-  // isSelected 和 isIndeterminate 由父组件计算后传入
-  isSelected: { type: Boolean, required: true },
-  isIndeterminate: { type: Boolean, required: true },
+  node: { type: Object, required: true }, // 当前节点的数据
+  isSelected: { type: Boolean, required: true }, // 当前节点是否被选中
+  isIndeterminate: { type: Boolean, required: true }, // 当前节点是否处于不确定状态
+  processedTree: { type: Map, required: true }, // 处理后的整个树的状态
 });
 
+// 定义组件的 emits
 defineEmits(['toggle']);
 
+// 控制节点是否展开
 const isExpanded = ref(true);
+// 判断节点是否有子节点
 const hasChildren = computed(() => props.node.children && props.node.children.length > 0);
 </script>
 

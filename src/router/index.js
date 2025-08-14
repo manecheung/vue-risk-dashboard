@@ -32,7 +32,7 @@ const routes = [
     } 
   },
   { 
-    path: '/news/:id', 
+    path: '/monitoring/news/:id', 
     name: 'newsDetail', 
     component: () => import('../views/NewsDetailPage.vue'), 
     props: true, 
@@ -43,7 +43,7 @@ const routes = [
     } 
   },
   { 
-    path: '/risk/:id', 
+    path: '/monitoring/risk/:id', 
     name: 'riskDetail', 
     component: () => import('../views/RiskDetailPage.vue'), 
     props: true, 

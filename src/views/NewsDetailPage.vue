@@ -22,18 +22,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useMonitoringStore } from '@/stores/monitoringStore';
 import DOMPurify from 'dompurify';
 
 const route = useRoute();
 const store = useMonitoringStore();
-const article = ref(null);
+
+// Use a computed property to reactively get the article from the store
+const article = computed(() => store.currentArticle);
 
 const sanitizedContent = computed(() => {
   if (article.value && article.value.content) {
-    return DOMPurify.sanitize(article.value.content, { USE_PROFILES: { html: true } });
+    // Allow more tags for better formatting, like tables
+    return DOMPurify.sanitize(article.value.content, { 
+      USE_PROFILES: { html: true },
+      ADD_TAGS: ['table', 'thead', 'tbody', 'tr', 'th', 'td'],
+      ADD_ATTR: ['colspan', 'rowspan', 'cellspacing', 'cellpadding', 'border']
+    });
   }
   return '';
 });
@@ -41,7 +48,12 @@ const sanitizedContent = computed(() => {
 onMounted(() => {
   const articleId = parseInt(route.params.id);
   if (articleId) {
-    article.value = store.getNewsById(articleId);
+    store.fetchArticleDetail(articleId);
   }
+});
+
+// Clear the current article when the component is unmounted
+onUnmounted(() => {
+  store.currentArticle = null;
 });
 </script>

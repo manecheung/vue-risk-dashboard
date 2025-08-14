@@ -7,7 +7,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
   const articles = ref([]);
   const pagination = ref({
     page: 1,
-    pageSize: 10,
+    pageSize: 5,
     totalRecords: 0,
     totalPages: 1,
   });
@@ -27,9 +27,13 @@ export const useMonitoringStore = defineStore('monitoring', () => {
       const params = {
         page: page,
         pageSize: pagination.value.pageSize,
-        keyword: filters.value.keyword || null,
-        type: filters.value.type !== 'all' ? filters.value.type : null,
       };
+      if (filters.value.keyword) {
+        params.keyword = filters.value.keyword;
+      }
+      if (filters.value.type && filters.value.type !== 'all') {
+        params.type = filters.value.type;
+      }
       const data = await getMonitoringArticles(params);
       if (data && data.records) {
         articles.value = data.records;
@@ -42,7 +46,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
       } else {
         articles.value = [];
         // Reset pagination if no data
-        pagination.value = { page: 1, pageSize: 10, totalRecords: 0, totalPages: 1 };
+        pagination.value = { page: 1, pageSize: 5, totalRecords: 0, totalPages: 1 };
       }
     } catch (err) {
       error.value = err.message;
@@ -82,7 +86,7 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     articles.value = [];
     pagination.value = {
       page: 1,
-      pageSize: 10,
+      pageSize: 5,
       totalRecords: 0,
       totalPages: 1,
     };

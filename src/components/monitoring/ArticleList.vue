@@ -21,7 +21,7 @@
               <span>来源: {{ article.author }}</span>
               <time :datetime="article.date">{{ article.date }}</time>
             </div>
-            <div class="mt-3 space-x-2">
+            <div v-if="article.tags && article.tags.length > 0" class="mt-3 space-x-2">
               <span v-for="tag in article.tags" :key="tag"
                 class="inline-block text-xs font-medium px-2 py-1 rounded-full bg-sky-500/10 text-sky-300">{{ tag
                 }}</span>

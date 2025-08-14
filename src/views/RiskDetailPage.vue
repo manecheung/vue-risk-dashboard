@@ -43,14 +43,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useMonitoringStore } from '@/stores/monitoringStore';
 import DOMPurify from 'dompurify';
 
 const route = useRoute();
 const store = useMonitoringStore();
-const article = ref(null);
+
+// Use a computed property to reactively get the article from the store
+const article = computed(() => store.currentArticle);
 
 const sanitizedNotice = computed(() => {
   if (article.value && article.value.notice) {
@@ -59,11 +61,16 @@ const sanitizedNotice = computed(() => {
   return '';
 });
 
+
 onMounted(() => {
   const articleId = parseInt(route.params.id);
-  const foundArticle = store.getRiskById(articleId);
-  if (foundArticle) {
-    article.value = foundArticle;
+  if (articleId) {
+    store.fetchArticleDetail(articleId);
   }
+});
+
+// Clear the current article when the component is unmounted
+onUnmounted(() => {
+  store.currentArticle = null;
 });
 </script>

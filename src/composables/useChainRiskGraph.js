@@ -32,10 +32,6 @@ function createGraphConfig(container) {
   return {
     container,
     fitView: true,
-    fitViewPadding: 30,
-    // 设置最小和最大缩放比例，防止缩放比例超出范围
-    minZoom: 0.1,
-    maxZoom: 10,
     padding: 30,
     layout: { type: 'dagre', rankdir: 'LR', align: 'UL', nodesep: 30, ranksep: 60 },
     defaultNode: { type: 'rect', size: [120, 40], style: { radius: 4, fill: 'rgba(56, 189, 248, 0.2)', stroke: '#38bdf8' }, labelCfg: { style: { fill: '#fff', fontSize: 12 } } },
@@ -43,6 +39,13 @@ function createGraphConfig(container) {
     modes: { default: ['drag-canvas', 'zoom-canvas', 'drag-node'] },
     plugins: [tooltip],
     nodeStateStyles: {
+      'risk-origin': {
+        stroke: '#ef4444', // red-500
+        lineWidth: 3,
+        shadowColor: '#ef4444',
+        shadowBlur: 20,
+        fill: 'rgba(239, 68, 68, 0.3)'
+      },
       risk: { fill: 'var(--risk-high-color)', stroke: '#fca5a5' },
       source: { fill: 'var(--risk-medium-color)', stroke: '#fca5a5' }
     },
@@ -50,53 +53,6 @@ function createGraphConfig(container) {
       active: { stroke: '#fbbf24', lineWidth: 2, shadowColor: '#fbbf24', shadowBlur: 10 }
     }
   };
-}
-
-// --- 安全的fitView函数 ---
-function safeFitView(graph, padding = 30, maxRetries = 3, delay = 100) {
-  if (!graph || graph.get('destroyed')) return;
-  
-  let retries = 0;
-  
-  const attemptFitView = () => {
-    try {
-      // 检查图表是否有节点数据
-      const nodes = graph.getNodes();
-      if (!nodes || nodes.length === 0) {
-        console.warn('图表没有节点，跳过fitView');
-        return;
-      }
-      
-      // 获取当前缩放比例，如果异常则重置
-      const currentZoom = graph.getZoom();
-      if (isNaN(currentZoom) || currentZoom <= 0 || currentZoom === Infinity) {
-        console.warn('当前缩放比例异常，重置为1:', currentZoom);
-        graph.zoomTo(1);
-      }
-      
-      // 尝试执行fitView
-      graph.fitView(padding);
-      
-    } catch (error) {
-      console.warn(`fitView失败 (尝试 ${retries + 1}/${maxRetries}):`, error.message);
-      
-      if (retries < maxRetries - 1) {
-        retries++;
-        setTimeout(attemptFitView, delay);
-      } else {
-        // 最后一次尝试失败，使用备用方案
-        console.warn('fitView多次失败，使用备用缩放方案');
-        try {
-          graph.zoomTo(1);
-          graph.fitCenter();
-        } catch (backupError) {
-          console.error('备用缩放方案也失败:', backupError.message);
-        }
-      }
-    }
-  };
-  
-  attemptFitView();
 }
 
 /**
@@ -119,10 +75,12 @@ export function useChainRiskGraph(graphDataRef) {
     const plainData = JSON.parse(JSON.stringify(data));
     graph.changeData(plainData);
 
-    // 使用安全的fitView函数，延迟执行以确保DOM更新完成
     setTimeout(() => {
-      safeFitView(graph, 30);
-    }, 50); // 增加延迟时间，确保布局计算完成
+        const container = containerRef.value;
+        if (graph && !graph.get('destroyed') && container && container.clientWidth > 0 && container.clientHeight > 0) {
+            graph.fitView(30);
+        }
+    }, 0);
 
     const isLiveSimulation = data.nodes && data.nodes.some(n => n.riskValue !== undefined);
 
@@ -175,6 +133,14 @@ export function useChainRiskGraph(graphDataRef) {
         }
       });
     }
+
+    // 在所有样式更新后，高亮风险源头
+    if (data.startNodeId) {
+      const sourceNode = graph.findById(data.startNodeId);
+      if (sourceNode) {
+        graph.setItemState(sourceNode, 'risk-origin', true);
+      }
+    }
   };
 
   const initGraph = (container) => {
@@ -187,25 +153,13 @@ export function useChainRiskGraph(graphDataRef) {
     }
 
     resizeObserver = new ResizeObserver(() => {
-      if (graph && !graph.get('destroyed') && container) {
-        // 防御性检查，确保容器具有有效尺寸
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        
-        if (containerWidth === 0 || containerHeight === 0) {
-          console.warn('容器尺寸为0，跳过resize处理');
-          return;
+        if (graph && !graph.get('destroyed') && container) {
+            if (container.clientWidth === 0 || container.clientHeight === 0) {
+                return;
+            }
+            graph.changeSize(container.clientWidth, container.clientHeight);
+            graph.fitView(30);
         }
-        
-        try {
-          // 更新画布尺寸
-          graph.changeSize(containerWidth, containerHeight);
-          // 使用安全的fitView函数
-          safeFitView(graph, 30);
-        } catch (error) {
-          console.error('处理resize时出错:', error.message);
-        }
-      }
     });
     resizeObserver.observe(container);
   };

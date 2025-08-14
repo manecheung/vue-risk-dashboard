@@ -15,12 +15,10 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
     totalRecords: 0,
     totalPages: 1,
   });
-  const isLoading = ref(false); // For the list
-  const isGraphLoading = ref(false); // For the graph panel
+  const isLoading = ref(false);
+  const isGraphLoading = ref(false);
   const error = ref(null);
-
-  // Holds the graph data for the main visualization component
-  const currentGraph = ref(null); 
+  const currentGraph = ref(null);
 
   // --- Actions ---
 
@@ -33,13 +31,14 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
     }
   }
 
-  async function runLiveSimulation(startNodeName) {
+  async function runLiveSimulation(startNodeId, startNodeName) {
     isGraphLoading.value = true;
     currentGraph.value = null;
     try {
       const result = await runNewSimulation(startNodeName);
       currentGraph.value = {
         simulationName: `实时模拟 - ${startNodeName || '未知起点'}`,
+        startNodeId: startNodeId,
         ...result
       };
       feedback.show('实时风险蔓延模拟成功', 'success');
@@ -101,7 +100,10 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
     isGraphLoading.value = true;
     try {
       const result = await runSimulation(id, startNodeId);
-      currentGraph.value = result;
+      currentGraph.value = {
+        ...result,
+        startNodeId: startNodeId,
+      };
       feedback.show(`模拟 #${id} 运行成功`, 'success');
     } catch (err) {
       feedback.show(`模拟运行失败: ${err.message}`, 'error');
@@ -111,15 +113,13 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
     }
   }
 
-  // --- Helpers ---
-
   function loadSimulationGraph(simulation) {
     feedback.show(`正在加载模拟场景 #${simulation.id}...`, 'info');
     try {
       const nodes = JSON.parse(simulation.nodes);
       const edges = JSON.parse(simulation.edges);
       const riskPath = simulation.riskPath ? JSON.parse(simulation.riskPath) : [];
-      
+
       currentGraph.value = {
         simulationId: simulation.id,
         simulationName: simulation.name,
@@ -139,7 +139,7 @@ export const useChainRiskStore = defineStore('chainRisk', () => {
     allCompanies,
     pagination,
     isLoading,
-    isGraphLoading, // Expose new state
+    isGraphLoading,
     error,
     currentGraph,
     fetchSimulations,

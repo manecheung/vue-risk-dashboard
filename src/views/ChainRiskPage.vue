@@ -3,7 +3,6 @@
     <header class="flex-shrink-0 mb-4 text-sm text-slate-400" aria-label="面包屑导航">产业链风险预警 / 风险蔓延模拟</header>
 
     <div class="flex-grow grid grid-cols-12 gap-6 min-h-0">
-      <!-- Left Panel: Simulation List -->
       <div class="col-span-12 lg:col-span-4 panel flex flex-col min-h-0">
         <h2 class="text-lg font-bold p-4 border-b border-slate-700 flex-shrink-0">操作面板</h2>
 
@@ -13,24 +12,25 @@
         </div>
 
         <div class="p-4 flex-shrink-0 border-b border-slate-700">
-          <input type="search" v-model="keyword" @keyup.enter="store.fetchSimulations(1, keyword)"
-            placeholder="搜索已存模拟..." class="form-input w-full text-sm" />
+          <input
+            type="search"
+            v-model="keyword"
+            @keyup.enter="store.fetchSimulations(1, keyword)"
+            placeholder="搜索已存模拟..."
+            class="form-input w-full text-sm"
+          />
         </div>
 
         <div class="flex-grow overflow-y-auto p-2">
-          <div v-if="store.isLoading && store.simulations.length === 0" class="text-center p-8 text-slate-500">加载中...
-          </div>
+          <div v-if="store.isLoading && store.simulations.length === 0" class="text-center p-8 text-slate-500">加载中...</div>
           <div v-else-if="store.error" class="text-center p-8 text-red-400">加载出错: {{ store.error }}</div>
           <ul v-else-if="store.simulations.length > 0" class="space-y-2">
-            <li v-for="sim in store.simulations" :key="sim.id"
-              class="p-3 rounded-lg transition-colors hover:bg-slate-800/50">
+            <li v-for="sim in store.simulations" :key="sim.id" class="p-3 rounded-lg transition-colors hover:bg-slate-800/50">
               <div class="font-semibold text-slate-200">{{ sim.name }}</div>
               <div class="text-xs text-slate-400 mt-1 truncate">{{ sim.description }}</div>
-              <div class="text-xs text-slate-500 mt-2">创建者: {{ sim.creator }} | {{ new
-                Date(sim.createTime).toLocaleString() }}</div>
+              <div class="text-xs text-slate-500 mt-2">创建者: {{ sim.creator }} | {{ new Date(sim.createTime).toLocaleString() }}</div>
               <div class="mt-3 flex items-center gap-2">
-                <button @click="store.loadSimulationGraph(sim)"
-                  class="btn btn-secondary text-xs flex-grow">加载预览</button>
+                <button @click="store.loadSimulationGraph(sim)" class="btn btn-secondary text-xs flex-grow">加载预览</button>
                 <button @click="openRunModal(sim)" class="btn btn-primary text-xs flex-grow">执行模拟</button>
                 <button @click="openDeleteModal(sim)" class="btn btn-danger text-xs" title="删除">&times;</button>
               </div>
@@ -40,39 +40,40 @@
         </div>
       </div>
 
-      <!-- Right Panel: Graph Visualization -->
       <div class="col-span-12 lg:col-span-8 panel flex flex-col min-h-0 relative">
         <div v-if="store.isGraphLoading" class="absolute inset-0 bg-slate-800/50 flex items-center justify-center z-10">
           <p class="text-lg text-sky-400 animate-pulse">正在执行模拟...</p>
         </div>
-        <h2 class="text-lg font-bold p-4 border-b border-slate-700 flex-shrink-0">
+         <h2 class="text-lg font-bold p-4 border-b border-slate-700 flex-shrink-0">
           图谱预览: <span class="text-sky-400">{{ store.currentGraph ? store.currentGraph.simulationName : '未加载' }}</span>
         </h2>
-
+        
         <div ref="containerRef" class="flex-grow min-h-0 p-1 relative">
-          <div v-if="!store.currentGraph" class="absolute inset-0 flex items-center justify-center bg-slate-900/50">
-            <p class="text-slate-500">请从左侧列表加载一个模拟场景进行预览或执行</p>
-          </div>
+            <div v-if="!store.currentGraph" class="absolute inset-0 flex items-center justify-center bg-slate-900/50">
+                <p class="text-slate-500">请从左侧列表加载一个模拟场景进行预览或执行</p>
+            </div>
         </div>
       </div>
     </div>
 
-    <!-- Modals -->
     <ConfirmModal :is-open="isDeleteModalOpen" title="确认删除" @confirm="handleDelete" @cancel="isDeleteModalOpen = false">
       <p>您确定要删除模拟场景 “<strong class="text-amber-400">{{ simulationToProcess?.name }}</strong>” 吗？此操作无法撤销。</p>
     </ConfirmModal>
 
-    <ChainRiskRunModal :is-open="isRunModalOpen" :nodes="nodesForRunModal" @run="handleRun"
-      @close="isRunModalOpen = false" />
+    <ChainRiskRunModal
+      :is-open="isRunModalOpen"
+      :nodes="nodesForRunModal"
+      @run="handleRun"
+      @close="isRunModalOpen = false"
+    />
 
-    <!-- A simple modal for creating a new simulation -->
     <div v-if="isCreateModalOpen" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div class="panel w-full max-w-lg">
         <h3 class="p-4 border-b border-slate-700 font-bold">创建新模拟</h3>
         <div class="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
             <label class="text-sm">名称</label>
-            <input v-model="newSim.name" class="form-input w-full text-sm mt-1" />
+            <input v-model="newSim.name" class="form-input w-full text-sm mt-1"/>
           </div>
           <div>
             <label class="text-sm">描述</label>
@@ -169,7 +170,7 @@ function handleRun(startNodeId) {
   if (isLiveMode.value) {
     const selectedCompany = store.allCompanies.find(c => c.id === startNodeId);
     if (selectedCompany) {
-      store.runLiveSimulation(selectedCompany.label);
+      store.runLiveSimulation(selectedCompany.id, selectedCompany.label);
     }
   } else if (simulationToProcess.value) {
     store.startSimulation(simulationToProcess.value.id, startNodeId);

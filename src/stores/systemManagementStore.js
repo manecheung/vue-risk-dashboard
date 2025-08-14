@@ -20,14 +20,7 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
   });
   const loading = ref(false);
 
-  // 操作 (Actions)
-
-  /**
-   * 获取用户列表（分页）
-   * @param {number} page - 页码
-   * @param {number} pageSize - 每页数量
-   * @param {string} keyword - 搜索关键词
-   */
+  // --- 用户管理 Actions ---
   async function fetchUsers(page = 1, pageSize = 10, keyword = '') {
     loading.value = true;
     try {
@@ -37,7 +30,7 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
       }
       const response = await api.get('/system/users', { params });
       const data = response.data.data;
-      users.value = data.records; // 后端返回的是 records
+      users.value = data.records;
       pagination.value = {
         page: data.page,
         pageSize: data.pageSize,
@@ -45,16 +38,12 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
         totalPages: data.totalPages,
       };
     } catch (error) {
-      // 修正：调用正确的 feedbackStore 方法
       feedback.show('获取用户列表失败: ' + (error.response?.data?.message || '您可能没有权限查看用户，或网络发生错误。'), 'error');
     } finally {
       loading.value = false;
     }
   }
 
-  /**
-   * 获取所有用户，用于下拉列表
-   */
   async function fetchAllUsers() {
     try {
       const response = await api.get('/system/users', { params: { page: 1, pageSize: 9999 } });
@@ -64,57 +53,29 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     }
   }
 
-  /**
-   * 获取所有角色
-   */
+  // --- 角色管理 Actions ---
   async function fetchRoles() {
     loading.value = true;
     try {
       const response = await api.get('/system/roles');
       roles.value = response.data.data;
     } catch (error) {
-      // 修正：调用正确的 feedbackStore 方法
       feedback.show('获取角色列表失败: ' + (error.response?.data?.message || '您可能没有权限查看角色，或网络发生错误。'), 'error');
     } finally {
       loading.value = false;
     }
   }
 
-  /**
-   * 获取组织架构树
-   */
-  async function fetchOrganizations() {
-    loading.value = true;
-    try {
-      const response = await api.get('/system/organizations');
-      organizationsTree.value = response.data.data;
-    } catch (error) {
-      // 修正：调用正确的 feedbackStore 方法
-      feedback.show('获取组织结构失败: ' + (error.response?.data?.message || '您可能没有权限查看组织，或网络发生错误。'), 'error');
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  /**
-   * 根据角色ID获取其权限信息
-   * @param {number} roleId - 角色ID
-   */
   async function getRolePermissions(roleId) {
     try {
       const response = await api.get(`/system/roles/${roleId}/permissions`);
-      return response.data.data; // 返回 { assignedKeys, permissionTree }
+      return response.data.data;
     } catch (error) {
       feedback.show('获取角色权限失败: ' + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
       return null;
     }
   }
 
-  /**
-   * 更新角色的权限
-   * @param {number} roleId - 角色ID
-   * @param {string[]} permissionKeys - 权限键名数组
-   */
   async function updateRolePermissions(roleId, permissionKeys) {
     try {
       await api.put(`/system/roles/${roleId}/permissions`, { permissionKeys });
@@ -126,12 +87,63 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     }
   }
 
-  /**
-   * 通用的创建或更新函数
-   * @param {'users' | 'roles' | 'organizations'} type - 操作的类型
-   * @param {object} item - 要创建或更新的数据项
-   */
+  // --- 组织管理 Actions ---
+  async function fetchOrganizations() {
+    loading.value = true;
+    try {
+      const response = await api.get('/system/organizations');
+      organizationsTree.value = response.data.data;
+    } catch (error) {
+      feedback.show('获取组织结构失败: ' + (error.response?.data?.message || '您可能没有权限查看组织，或网络发生错误。'), 'error');
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function createOrganization(orgData) {
+    try {
+      await api.post('/system/organizations', orgData);
+      feedback.show('组织创建成功！', 'success');
+      await fetchOrganizations(); // 刷新整个树
+      return true;
+    } catch (error) {
+      feedback.show('组织创建失败: ' + (error.response?.data?.message || '网络错误'), 'error');
+      return false;
+    }
+  }
+
+  async function updateOrganization(orgData) {
+    try {
+      await api.put(`/system/organizations/${orgData.id}`, orgData);
+      feedback.show('组织更新成功！', 'success');
+      await fetchOrganizations(); // 刷新整个树
+      return true;
+    } catch (error) {
+      feedback.show('组织更新失败: ' + (error.response?.data?.message || '网络错误'), 'error');
+      return false;
+    }
+  }
+
+  async function deleteOrganization(id) {
+    try {
+      await api.delete(`/system/organizations/${id}`);
+      feedback.show('组织删除成功！', 'success');
+      await fetchOrganizations(); // 刷新整个树
+      return true;
+    } catch (error) {
+      feedback.show('组织删除失败: ' + (error.response?.data?.message || '网络错误'), 'error');
+      return false;
+    }
+  }
+
+  // --- 通用 Actions (保留用户和角色部分) ---
   async function createOrUpdateItem(type, item) {
+    if (type === 'organizations') {
+      console.warn('createOrUpdateItem is deprecated for organizations. Use createOrganization or updateOrganization instead.');
+      const isCreating = !item.id;
+      return isCreating ? createOrganization(item) : updateOrganization(item);
+    }
+
     const isCreating = !item.id;
     const url = isCreating ? `/system/${type}` : `/system/${type}/${item.id}`;
     const method = isCreating ? 'post' : 'put';
@@ -139,10 +151,8 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     try {
       await api[method](url, item);
       feedback.show(`${isCreating ? '创建' : '更新'}成功！`, 'success');
-      // 操作成功后刷新对应的数据
       if (type === 'users') await fetchUsers(pagination.value.page, pagination.value.pageSize);
       else if (type === 'roles') await fetchRoles();
-      else if (type === 'organizations') await fetchOrganizations();
       return true;
     } catch (error) {
       feedback.show(`${isCreating ? '创建' : '更新'}失败: ` + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
@@ -150,19 +160,17 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
     }
   }
 
-  /**
-   * 通用的删除函数
-   * @param {'users' | 'roles' | 'organizations'} type - 操作的类型
-   * @param {number} id - 要删除的数据项ID
-   */
   async function deleteItem(type, id) {
+    if (type === 'organizations') {
+      console.warn('deleteItem is deprecated for organizations. Use deleteOrganization instead.');
+      return deleteOrganization(id);
+    }
+
     try {
       await api.delete(`/system/${type}/${id}`);
       feedback.show('删除成功！', 'success');
-      // 操作成功后刷新对应的数据
       if (type === 'users') await fetchUsers(pagination.value.page, pagination.value.pageSize);
       else if (type === 'roles') await fetchRoles();
-      else if (type === 'organizations') await fetchOrganizations();
       return true;
     } catch (error) {
       feedback.show('删除失败: ' + (error.response?.data?.message || '网络错误，请稍后再试。'), 'error');
@@ -172,17 +180,22 @@ export const useSystemManagementStore = defineStore('systemManagement', () => {
 
   return {
     users,
-    allUsers, // <-- export new state
+    allUsers,
     roles,
     organizationsTree,
     pagination,
     loading,
     fetchUsers,
-    fetchAllUsers, // <-- export new action
+    fetchAllUsers,
     fetchRoles,
     fetchOrganizations,
     getRolePermissions,
     updateRolePermissions,
+    // 组织管理的专属 Actions
+    createOrganization,
+    updateOrganization,
+    deleteOrganization,
+    // 通用 Actions
     createOrUpdateItem,
     deleteItem,
   };

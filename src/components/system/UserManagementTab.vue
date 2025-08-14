@@ -79,6 +79,15 @@
       @close="closeFormModal"
       @submit="handleSubmit"
     />
+
+    <!-- 删除确认模态框 -->
+    <ConfirmModal
+      :is-open="isConfirmModalOpen"
+      title="确认删除"
+      message="您确定要删除这个用户吗？此操作一旦执行将无法撤销。"
+      @confirm="confirmDeletion"
+      @cancel="closeDeleteConfirmation"
+    />
   </div>
 </template>
 
@@ -89,6 +98,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useCrudModal } from '@/composables/useCrudModal';
 import DataTable from '@/components/common/DataTable.vue';
 import FormModal from './FormModal.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
 
 const store = useSystemManagementStore();
 const authStore = useAuthStore();
@@ -97,6 +107,10 @@ const authStore = useAuthStore();
 const { isFormModalOpen, selectedItem, modalTitle, openFormModal, closeFormModal } = useCrudModal('用户');
 
 const searchKeyword = ref('');
+
+// 删除确认模态框状态
+const isConfirmModalOpen = ref(false);
+const itemToDeleteId = ref(null);
 
 // 定义数据表格的列
 const userColumns = [
@@ -180,9 +194,27 @@ async function handleSubmit(item) {
   }
 }
 
-// 处理删除操作
-function handleDelete(id) {
-  // 实际项目中应在此处调用一个确认对话框
-  store.deleteItem('users', id);
+// 打开删除确认模态框
+function openDeleteConfirmation(id) {
+  itemToDeleteId.value = id;
+  isConfirmModalOpen.value = true;
 }
+
+// 关闭删除确认模态框
+function closeDeleteConfirmation() {
+  isConfirmModalOpen.value = false;
+  itemToDeleteId.value = null;
+}
+
+// 确认删除
+async function confirmDeletion() {
+  if (itemToDeleteId.value) {
+    await store.deleteItem('users', itemToDeleteId.value);
+    closeDeleteConfirmation();
+  }
+}
+
+// 将旧的 handleDelete 重命名为 openDeleteConfirmation
+const handleDelete = openDeleteConfirmation;
 </script>
+

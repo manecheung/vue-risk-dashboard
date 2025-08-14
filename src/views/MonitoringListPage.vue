@@ -19,7 +19,7 @@
         <label for="keyword-search" class="text-slate-300 flex-shrink-0">关键词:</label>
         <input type="search" id="keyword-search" v-model.lazy="store.filters.keyword" @keyup.enter="store.applyFilters" placeholder="搜索标题或标签..." class="bg-slate-700 text-white rounded flex-grow px-3 py-1.5 focus:ring-sky-500 focus:border-sky-500">
       </div>
-      <button @click="store.applyFilters" class="px-4 py-1.5 bg-sky-600 text-white rounded hover:bg-sky-700 transition-colors">
+      <button @click="store.applyFilters" class="btn btn-primary text-sm">
         搜索
       </button>
     </div>
@@ -42,17 +42,20 @@
     </div>
     
     <!-- 分页区域 -->
-    <footer v-if="!store.isLoading && store.pagination.totalPages > 1" class="flex-shrink-0 mt-6 flex justify-center items-center space-x-2">
-       <button @click="store.setPage(store.pagination.page - 1)" :disabled="store.pagination.page <= 1" class="px-3 py-1 bg-slate-700 rounded disabled:opacity-50 hover:bg-slate-600">
-        上一页
-      </button>
-      <span class="text-slate-300">
-        第 {{ store.pagination.page }} 页 / 共 {{ store.pagination.totalPages }} 页
-      </span>
-      <button @click="store.setPage(store.pagination.page + 1)" :disabled="store.pagination.page >= store.pagination.totalPages" class="px-3 py-1 bg-slate-700 rounded disabled:opacity-50 hover:bg-slate-600">
-        下一页
-      </button>
-    </footer>
+    <footer v-if="!store.isLoading && store.pagination.totalPages > 1" class="flex-shrink-0 flex justify-between items-center p-3 mt-4 border-t border-slate-700 text-sm text-slate-400">
+        <div>共 {{ store.pagination.totalRecords }} 条</div>
+        <nav class="flex items-center space-x-4" aria-label="分页">
+          <div class="flex items-center space-x-2">
+            <label for="pageSize" class="text-xs">每页</label>
+            <div class="w-20">
+              <CustomSelect id="pageSize" :model-value="store.pagination.pageSize" @update:modelValue="store.setPageSize($event)" :options="store.pageSizeOptions.map(s => ({value: s, label: s}))" direction="up" />
+            </div>
+          </div>
+          <button @click="store.setPage(store.pagination.page - 1)" :disabled="store.pagination.page <= 1" class="btn btn-secondary text-xs px-3 py-1" aria-label="上一页">上一页</button>
+          <span>{{ store.pagination.page }} / {{ store.pagination.totalPages }}</span>
+          <button @click="store.setPage(store.pagination.page + 1)" :disabled="store.pagination.page >= store.pagination.totalPages" class="btn btn-secondary text-xs px-3 py-1" aria-label="下一页">下一页</button>
+        </nav>
+      </footer>
   </main>
 </template>
 
@@ -62,6 +65,7 @@ import { useRouter } from 'vue-router';
 import { useMonitoringStore } from '@/stores/monitoringStore';
 import { useFeedbackStore } from '@/stores/feedbackStore';
 import ArticleList from '@/components/monitoring/ArticleList.vue';
+import CustomSelect from '@/components/common/CustomSelect.vue';
 
 const store = useMonitoringStore();
 const router = useRouter();

@@ -20,6 +20,13 @@ export const useMonitoringStore = defineStore('monitoring', () => {
   const error = ref(null);
   const feedback = useFeedbackStore();
 
+  const pageSizeOptions = ref([5, 10, 20, 50]);
+
+  function setPageSize(size) {
+    pagination.value.pageSize = size;
+    fetchArticles(1);
+  }
+
   async function fetchArticles(page = 1) {
     isLoading.value = true;
     error.value = null;
@@ -110,6 +117,8 @@ export const useMonitoringStore = defineStore('monitoring', () => {
     fetchArticleDetail,
     applyFilters,
     setPage,
-    reset, // 暴露 reset 方法
+    setPageSize,
+    pageSizeOptions,
+    reset,
   };
 });

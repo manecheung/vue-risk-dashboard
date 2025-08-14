@@ -9,15 +9,13 @@
     <div class="flex-shrink-0 mb-6 p-4 bg-slate-800/50 rounded-lg flex flex-wrap items-center gap-4">
       <div class="flex items-center space-x-2">
         <label for="type-filter" class="text-slate-300">类型:</label>
-        <select id="type-filter" v-model="store.filters.type" class="bg-slate-700 text-white rounded px-3 py-1.5 focus:ring-sky-500 focus:border-sky-500">
-          <option value="all">全部</option>
-          <option value="news">行业新闻</option>
-          <option value="risk">风险预警</option>
-        </select>
+        <div class="w-32">
+          <CustomSelect id="type-filter" v-model="store.filters.type" :options="typeOptions" />
+        </div>
       </div>
       <div class="flex items-center space-x-2 flex-grow">
         <label for="keyword-search" class="text-slate-300 flex-shrink-0">关键词:</label>
-        <input type="search" id="keyword-search" v-model.lazy="store.filters.keyword" @keyup.enter="store.applyFilters" placeholder="搜索标题或标签..." class="bg-slate-700 text-white rounded flex-grow px-3 py-1.5 focus:ring-sky-500 focus:border-sky-500">
+        <input type="search" id="keyword-search" v-model.lazy="store.filters.keyword" @keyup.enter="store.applyFilters" placeholder="搜索标题或标签..." class="form-input flex-grow text-sm">
       </div>
       <button @click="store.applyFilters" class="btn btn-primary text-sm">
         搜索
@@ -70,6 +68,12 @@ import CustomSelect from '@/components/common/CustomSelect.vue';
 const store = useMonitoringStore();
 const router = useRouter();
 const feedback = useFeedbackStore();
+
+const typeOptions = [
+  { value: 'all', label: '全部' },
+  { value: 'news', label: '行业新闻' },
+  { value: 'risk', label: '风险预警' },
+];
 
 onMounted(() => {
   // 如果当前没有文章，则获取

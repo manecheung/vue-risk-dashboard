@@ -1,15 +1,17 @@
 <template>
   <div class="relative w-full h-full">
     <!-- Graph Container -->
-    <div ref="container" class="w-full h-full bg-transparent" :style="{ visibility: shouldShowGraph ? 'visible' : 'hidden' }"></div>
+    <div ref="container" class="w-full h-full bg-transparent"
+      :style="{ visibility: shouldShowGraph ? 'visible' : 'hidden' }"></div>
 
     <!-- Graph Legend -->
-    <div v-if="shouldShowGraph" class="absolute bottom-4 right-4 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg p-4 text-sm shadow-lg">
+    <div v-if="shouldShowGraph" class="absolute bottom-4 right-4 origin-bottom-right scale-50" :class="`bg-slate-800/90 backdrop-blur-sm border border-slate-600
+           rounded-lg p-4 text-sm shadow-lg w-25`">
       <h4 class="font-semibold text-slate-200 mb-3 flex items-center">
         <span class="w-2 h-2 bg-cyan-400 rounded-full mr-2"></span>
         图例说明
       </h4>
-      
+
       <!-- Node States Legend -->
       <div class="space-y-2 mb-4">
         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">节点状态</p>
@@ -34,12 +36,13 @@
       <!-- Edge Types Legend -->
       <div class="space-y-2">
         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">连接类型</p>
-        
+
         <!-- Normal Supply Chain Link -->
         <div class="flex items-center space-x-2">
           <svg width="24" height="8" viewBox="0 0 24 8">
             <defs>
-              <marker id="normalArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <marker id="normalArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"
+                markerUnits="strokeWidth">
                 <polygon points="0,0 0,6 8,3" fill="#475569" />
               </marker>
             </defs>
@@ -67,11 +70,13 @@
         <div class="flex items-center space-x-2">
           <svg width="24" height="8" viewBox="0 0 24 8">
             <defs>
-              <marker id="dependencyArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <marker id="dependencyArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"
+                markerUnits="strokeWidth">
                 <polygon points="0,0 0,6 8,3" fill="#06b6d4" />
               </marker>
             </defs>
-            <line x1="2" y1="4" x2="22" y2="4" stroke="#06b6d4" stroke-width="2" stroke-dasharray="3,3" marker-end="url(#dependencyArrow)" />
+            <line x1="2" y1="4" x2="22" y2="4" stroke="#06b6d4" stroke-width="2" stroke-dasharray="3,3"
+              marker-end="url(#dependencyArrow)" />
           </svg>
           <span class="text-slate-300">依赖关系</span>
         </div>
@@ -93,8 +98,8 @@
       <!-- Interactive Hints -->
       <div class="mt-4 pt-3 border-t border-slate-600">
         <p class="text-xs text-slate-400">
-          💡 点击节点查看详情<br/>
-          🔍 拖拽移动视图<br/>
+          💡 点击节点查看详情<br />
+          🔍 拖拽移动视图<br />
           🖱️ 滚轮缩放图谱
         </p>
       </div>
@@ -120,10 +125,7 @@
 
     <!-- Layout Switch -->
     <div v-if="shouldShowGraph" class="absolute top-4 left-4 w-36">
-      <CustomSelect
-        v-model="currentLayout"
-        :options="layoutOptions"
-      />
+      <CustomSelect v-model="currentLayout" :options="layoutOptions" />
     </div>
   </div>
 </template>
@@ -313,7 +315,7 @@ const initGraph = () => {
 
   setupGraphEvents();
   setupResizeObserver();
-  
+
   nextTick(() => {
     renderExistingData();
   });
@@ -409,7 +411,7 @@ const renderExistingData = () => {
   if (store.graphData && store.graphData.nodes.length > 0) {
     renderGraphData(store.graphData);
   }
-  
+
   if (store.nodeUpdates && store.nodeUpdates.length > 0) {
     applyNodeUpdatesSmooth(store.nodeUpdates);
   }
@@ -422,11 +424,11 @@ const renderGraphData = (data) => {
 
   try {
     const graphData = JSON.parse(JSON.stringify(data));
-    
+
     graphData.nodes.forEach(node => {
       node.type = 'ellipse';
       node.size = [80, 45];
-      node.style = { 
+      node.style = {
         fill: '#64748b',
         fillOpacity: 0.8,
         stroke: '#475569',
@@ -434,7 +436,7 @@ const renderGraphData = (data) => {
       };
       node.label = node.name;
     });
-    
+
     if (graphData.edges) {
       graphData.edges.forEach((edge, index) => {
         edge.type = 'cubic-horizontal';
@@ -448,7 +450,7 @@ const renderGraphData = (data) => {
             fill: '#475569',
           },
         };
-        
+
         // 根据业务逻辑设置不同类型的边
         // 这里是示例，你可以根据实际数据结构调整
         if (edge.type === 'dependency') {
@@ -459,10 +461,10 @@ const renderGraphData = (data) => {
         }
       });
     }
-    
+
     graph.data(graphData);
     graph.render();
-    
+
     console.log('Graph data rendered successfully:', graphData.nodes.length, 'nodes');
   } catch (error) {
     console.error('Error rendering graph data:', error);
@@ -471,9 +473,9 @@ const renderGraphData = (data) => {
 
 const applyNodeUpdatesSmooth = (updates) => {
   if (!graph || !updates) return;
-  
+
   graph.updateLayout({ animate: false });
-  
+
   updates.forEach(update => {
     try {
       const node = graph.findById(update.id);
@@ -481,7 +483,7 @@ const applyNodeUpdatesSmooth = (updates) => {
         const currentModel = node.getModel();
         const newColor = getNodeColor(update.state);
         const newState = getNodeState(update.state);
-        
+
         graph.updateItem(node, {
           style: {
             ...currentModel.style,
@@ -489,9 +491,9 @@ const applyNodeUpdatesSmooth = (updates) => {
             fillOpacity: 0.9,
           }
         });
-        
+
         graph.clearItemStates(node);
-        
+
         if (newState) {
           graph.setItemState(node, newState, true);
         }
@@ -500,7 +502,7 @@ const applyNodeUpdatesSmooth = (updates) => {
       console.error('Error updating node:', update.id, error);
     }
   });
-  
+
   setTimeout(() => {
     if (graph && !graph.get('destroyed')) {
       graph.updateLayout({ animate: true });
@@ -535,11 +537,11 @@ watch(currentLayout, (newLayout) => {
 
 const switchLayout = (layoutType) => {
   if (!graph) return;
-  
+
   const width = graph.getWidth();
   const height = graph.getHeight();
   const nodeCount = graph.getNodes().length;
-  
+
   // 正确的停止动画方法
   try {
     graph.stopAnimate();
@@ -547,7 +549,7 @@ const switchLayout = (layoutType) => {
     // 如果没有这个方法就忽略
     console.log('stopAnimate not available');
   }
-  
+
   const layoutConfigs = {
     dagre: {
       type: 'dagre',
@@ -584,26 +586,26 @@ const switchLayout = (layoutType) => {
       center: [width / 2, height / 2],
     }
   };
-  
+
   const config = layoutConfigs[layoutType];
   if (!config) return;
-  
+
   // 暂时禁用动画以避免闪烁
   const originalAnimate = graph.get('animate');
   graph.set('animate', false);
-  
+
   // 清除之前的afterlayout监听器
   graph.off('afterlayout');
-  
+
   // 添加一次性的布局完成监听
   graph.once('afterlayout', () => {
     setTimeout(() => {
       // 恢复动画设置
       graph.set('animate', originalAnimate);
-      
+
       // 强制居中显示
       graph.fitView(30);
-      
+
       // 重新添加常规的afterlayout监听器
       graph.on('afterlayout', () => {
         setTimeout(() => {
@@ -612,11 +614,11 @@ const switchLayout = (layoutType) => {
           }
         }, 50);
       });
-      
+
       console.log(`Layout switched to ${layoutType} and centered`);
     }, 100);
   });
-  
+
   // 执行布局更新
   graph.updateLayout(config);
 };
@@ -634,7 +636,7 @@ watch(() => store.nodeUpdates, (updates) => {
 
 watch(() => store.selectedNodeId, (nodeId) => {
   if (!graph) return;
-  
+
   if (nodeId) {
     highlightRiskPath(nodeId);
   } else {
@@ -657,9 +659,12 @@ watch(() => [store.graphData, graph], ([data, graphInstance]) => {
 <style scoped>
 /* 自定义动画 */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

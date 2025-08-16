@@ -186,6 +186,9 @@ const save = () => {
 
 <style scoped>
 .form-label {
-  @apply text-sm text-slate-400 block mb-1;
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  color: #94a3b8; /* slate-400 */
 }
 </style>

@@ -4,7 +4,6 @@ import api from '@/services/api';
 import router from '@/router';
 import { useDashboardStore } from './dashboardStore';
 import { useMonitoringStore } from './monitoringStore';
-import { useChainRiskStore } from './chainRiskStore';
 import { useSystemManagementStore } from './systemManagementStore';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -70,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     const storesToReset = [
       { name: 'dashboard', store: useDashboardStore() },
       { name: 'monitoring', store: useMonitoringStore() },
-      { name: 'chainRisk', store: useChainRiskStore() },
+      // { name: 'chainRisk', store: useChainRiskStore() },
       { name: 'systemManagement', store: useSystemManagementStore() },
     ];
 

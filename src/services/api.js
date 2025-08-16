@@ -49,14 +49,41 @@ export const getKnowledgeGraph = (params) => handleResponse(api.get('/dashboard/
 export const getMonitoringArticles = (params) => handleResponse(api.get('/monitoring/articles', { params }));
 export const getArticleDetail = (id) => handleResponse(api.get(`/monitoring/articles/${id}`));
 
+
 // ==================================================================
-// 产业链风险预警模块 (Chain Risk)
+// 风险蔓延模拟模块 (Simulation)
 // ==================================================================
-export const getSimulations = (params) => handleResponse(api.get('/chain-risk/simulations', { params }));
-export const saveSimulation = (data) => handleResponse(api.post('/chain-risk/simulations', data));
-export const runSimulation = (id, startNodeId) => handleResponse(api.post(`/chain-risk/simulations/${id}/run`, { startNodeId }));
-export const deleteSimulation = (id) => handleResponse(api.delete(`/chain-risk/simulations/${id}`));
-export const runNewSimulation = (startNodeName) => handleResponse(api.post('/chain-risk/run-new', { startNodeName }));
+/**
+ * 对模拟器相关接口进行API调用，采用更直接的响应/错误处理。
+ * @param {Promise} promise axios promise
+ * @returns {Promise<any>} Resolves with response.data or rejects with an error object.
+ */
+async function handleSimulationResponse(promise) {
+  try {
+    const response = await promise;
+    return response.data;
+  } catch (error) {
+    console.error("Simulation API Call Failed:", error);
+    const errorInfo = {
+      message: error.response?.data?.error || error.message || 'An unknown error occurred',
+      status: error.response?.status || 500,
+    };
+    throw errorInfo;
+  }
+}
+
+export const getAllSimulations = () => handleSimulationResponse(api.get('/simulations'));
+export const getSimulationTopology = (id) => handleSimulationResponse(api.get(`/simulations/${id}/graph/topology`));
+export const getSimulationStepData = (id, time) => handleSimulationResponse(api.get(`/simulations/${id}/step/${time}`));
+export const getSimulationCompanyDetails = (id, time, companyId) => handleSimulationResponse(api.get(`/simulations/${id}/step/${time}/company/${companyId}`));
+export const deleteSimulation = (id) => handleSimulationResponse(api.delete(`/simulations/${id}`));
+export const createSimulation = (formData) => {
+  return handleSimulationResponse(api.post('/simulations', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }));
+};
 
 
 // ==================================================================

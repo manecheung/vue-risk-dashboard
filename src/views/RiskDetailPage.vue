@@ -29,9 +29,16 @@
           <div class="flex flex-col md:flex-row gap-8 items-start">
             <div class="text-slate-300 leading-relaxed flex-grow prose prose-invert max-w-none"
               v-html="sanitizedNotice"></div>
-            <img :src="article.image.replace('160x90', '400x225')" :alt="article.title"
-              class="w-full md:w-2/5 h-auto object-cover rounded-md flex-shrink-0"
-              onerror="this.onerror=null;this.src='/ImageError.svg';" />
+            <!-- Image or Placeholder -->
+            <div v-if="article.image" class="w-full md:w-2/5 flex-shrink-0">
+              <img :src="article.image.replace('160x90', '400x225')" :alt="article.title"
+                class="w-full h-auto object-cover rounded-md"
+                onerror="this.onerror=null;this.src='/ImageError.svg';" />
+            </div>
+            <div v-else 
+              class="w-full md:w-2/5 h-64 flex-shrink-0 bg-slate-800/50 border border-slate-700 rounded-md flex items-center justify-center p-4">
+              <span class="text-2xl text-slate-400 text-center font-bold">{{ article.title }}</span>
+            </div>
           </div>
         </div>
       </article>
@@ -55,8 +62,8 @@ const store = useMonitoringStore();
 const article = computed(() => store.currentArticle);
 
 const sanitizedNotice = computed(() => {
-  if (article.value && article.value.notice) {
-    return DOMPurify.sanitize(article.value.notice, { USE_PROFILES: { html: true } });
+  if (article.value && article.value.content) {
+    return DOMPurify.sanitize(article.value.content, { USE_PROFILES: { html: true } });
   }
   return '';
 });

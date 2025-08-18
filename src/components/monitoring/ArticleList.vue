@@ -8,10 +8,17 @@
         <article v-for="article in articles" :key="article.id" @click="$emit('view-detail', article)"
           @keyup.enter="$emit('view-detail', article)" tabindex="0"
           class="flex flex-col md:flex-row items-start p-4 rounded-lg transition-all duration-300 cursor-pointer hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-sky-500">
-          <img :src="article.image" :alt="article.title"
-            class="w-full md:w-40 h-24 object-cover rounded-md flex-shrink-0"
-            loading="lazy"
-            onerror="this.onerror=null; this.src='/ImageError.svg';" />
+          <!-- Image or Placeholder -->
+          <div v-if="article.image" class="w-full md:w-40 h-24 flex-shrink-0">
+            <img :src="article.image" :alt="article.title"
+              class="w-full h-full object-cover rounded-md"
+              loading="lazy"
+              onerror="this.onerror=null; this.src='/ImageError.svg';" />
+          </div>
+          <div v-else 
+            class="w-full md:w-40 h-24 flex-shrink-0 bg-slate-700 rounded-md flex items-center justify-center p-2">
+            <span class="text-sm text-slate-300 text-center font-semibold">{{ article.title }}</span>
+          </div>
           <div class="ml-0 md:ml-6 mt-4 md:mt-0 flex-grow min-w-0">
             <div class="overflow-x-auto pb-1 custom-scrollbar">
               <h3 class="text-lg font-semibold text-sky-400 transition-colors whitespace-nowrap">{{ article.title }}

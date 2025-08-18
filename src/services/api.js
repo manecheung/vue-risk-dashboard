@@ -1,4 +1,6 @@
 import axios from 'axios';
+import router from '@/router'; // 引入 router
+import { useAuthStore } from '@/stores/authStore'; // 引入 authStore
 
 // 创建并配置axios实例
 const api = axios.create({
@@ -7,6 +9,44 @@ const api = axios.create({
     'Content-Type': 'application/json',
   }
 });
+
+// 添加请求拦截器，在每个请求头中添加token
+api.interceptors.request.use(
+  config => {
+    const authStore = useAuthStore();
+    const token = authStore.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+
+// 添加响应拦截器，处理全局错误，特别是401 Unauthorized
+api.interceptors.response.use(
+  // 对成功响应直接放行
+  response => response,
+  // 对错误响应进行统一处理
+  async error => {
+    if (error.response && error.response.status === 403) {
+      // 如果是403错误，说明token无效或已过期
+      const authStore = useAuthStore();
+      // 调用登出逻辑，清除本地token和用户信息
+      authStore.logout();
+      // 跳转到登录页面，并携带当前路径作为查询参数，以便登录后能返回原页面
+      await router.push({
+        path: '/login',
+        query: { redirect: router.currentRoute.value.fullPath }
+      });
+    }
+    // 抛出错误，以便业务代码中的catch块可以捕获并处理
+    return Promise.reject(error);
+  }
+);
 
 // 统一处理响应的辅助函数
 async function handleResponse(promise) {

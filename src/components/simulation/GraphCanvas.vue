@@ -138,14 +138,14 @@ import CustomSelect from '@/components/common/CustomSelect.vue'; // Import Custo
 
 const store = useSimulationStore();
 const container = ref(null);
-const currentLayout = ref('dagre');
+const currentLayout = ref('grid');
 let graph = null;
 let resizeObserver = null;
 
 const layoutOptions = ref([
+  { value: 'grid', label: '网格布局' },
   { value: 'dagre', label: '层次布局' },
   { value: 'concentric', label: '同心圆' },
-  { value: 'grid', label: '网格布局' },
   { value: 'force', label: '力导向' },
 ]);
 
@@ -179,12 +179,10 @@ const initGraph = () => {
     width,
     height,
     layout: {
-      type: 'dagre',
-      rankdir: 'TB',
-      align: 'DL',
-      nodesep: 80,
-      ranksep: 120,
-      controlPoints: true,
+      type: 'grid',
+      preventOverlap: true,
+      nodeSize: 60,
+      sortBy: 'id',
     },
     defaultNode: {
       size: [80, 45],

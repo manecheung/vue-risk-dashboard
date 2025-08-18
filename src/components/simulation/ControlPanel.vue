@@ -12,6 +12,11 @@
           placeholder="请选择场景..."
           :disabled="store.isLoading"
         />
+        <!-- to do: 场景新增和删除场景默认隐藏，后续需要优化后端的性能 -->
+        <div class="flex space-x-2 mt-2 hidden">
+          <button @click="showAddModal = true" class="btn btn-primary w-full">新增场景</button>
+          <button @click="confirmDelete" class="btn btn-danger w-full" :disabled="!store.selectedSimulationId">删除场景</button>
+        </div>
       </div>
 
       <!-- 时间轴 -->
@@ -39,19 +44,35 @@
       <div class="space-y-3">
         <label class="block text-sm font-medium text-slate-400">播放控制</label>
         <div class="grid grid-cols-2 gap-2">
-          <button @click="togglePlay" class="control-btn" :disabled="!store.selectedSimulationId">
+          <button @click="togglePlay" class="btn btn-secondary" :disabled="!store.selectedSimulationId">
             <span v-if="!isPlaying">▶️ 自动播放</span>
             <span v-else>⏸️ 暂停</span>
           </button>
-          <button @click="reset" class="control-btn" :disabled="!store.selectedSimulationId">🔄 重置</button>
-          <button @click="prevStep" class="control-btn" :disabled="!store.selectedSimulationId">⏪ 上一步</button>
-          <button @click="nextStep" class="control-btn" :disabled="!store.selectedSimulationId">⏩ 下一步</button>
+          <button @click="reset" class="btn btn-secondary" :disabled="!store.selectedSimulationId">🔄 重置</button>
+          <button @click="prevStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId">⏪ 上一步</button>
+          <button @click="nextStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId">⏩ 下一步</button>
         </div>
       </div>
 
       <div v-if="store.isLoading && !store.selectedSimulationId" class="text-sm text-slate-400">正在加载场景列表...</div>
       <div v-if="store.error" class="text-sm text-red-400">错误: {{ store.error }}</div>
     </div>
+    <FormModal
+      v-if="showAddModal"
+      :is-open="showAddModal"
+      :form-config="simulationFormConfig"
+      modal-title="新增模拟场景"
+      :is-loading="isCreating"
+      @close="showAddModal = false"
+      @submit="handleCreateSimulation"
+    />
+    <ConfirmModal
+      :is-open="isConfirmModalOpen"
+      title="确认删除"
+      message="您确定要删除此模拟场景吗？此操作无法撤销。"
+      @confirm="handleDelete"
+      @cancel="isConfirmModalOpen = false"
+    />
   </div>
 </template>
 
@@ -60,9 +81,14 @@ import { ref, computed, onUnmounted } from 'vue';
 import { useSimulationStore } from '@/stores/simulationStore';
 import { debounce } from 'lodash';
 import CustomSelect from '@/components/common/CustomSelect.vue';
+import FormModal from '../common/FormModal.vue';
+import ConfirmModal from '@/components/common/ConfirmModal.vue';
 
 const store = useSimulationStore();
 const isPlaying = ref(false);
+const showAddModal = ref(false);
+const isConfirmModalOpen = ref(false);
+const isCreating = ref(false);
 let playInterval = null;
 
 // Computed property to sync v-model with Pinia state
@@ -133,6 +159,48 @@ onUnmounted(() => {
   stop(); // Clean up interval on component unmount
 });
 
+const confirmDelete = () => {
+  isConfirmModalOpen.value = true;
+};
+
+const handleDelete = () => {
+  if (store.selectedSimulationId) {
+    store.deleteSimulation(store.selectedSimulationId);
+  }
+  isConfirmModalOpen.value = false;
+};
+
+const simulationFormConfig = {
+  fields: [
+    { name: 'name', label: '场景名称', type: 'text', required: true },
+    { name: 'description', label: '场景描述', type: 'textarea' },
+    { name: 'file', label: '场景文件', type: 'file', required: true },
+  ]
+};
+
+const handleCreateSimulation = async (formData) => {
+  if (!formData.file) {
+    alert('请选择一个文件');
+    return;
+  }
+
+  const data = new FormData();
+  data.append('name', formData.name);
+  data.append('description', formData.description || '');
+  data.append('file', formData.file);
+
+  isCreating.value = true;
+  try {
+    await store.createSimulation(data);
+    showAddModal.value = false;
+  } catch (error) {
+    console.error('Failed to create simulation', error);
+    alert('创建失败: ' + error.message);
+  } finally {
+    isCreating.value = false;
+  }
+};
+
 </script>
 
 <style scoped>
@@ -142,27 +210,6 @@ onUnmounted(() => {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #1e293b; /* slate-800 */
   color: #e2e8f0; /* slate-200 */
-}
-
-.control-btn {
-  padding: 0.5rem;
-  background-color: #334155;
-  color: #e2e8f0;
-  border: 1px solid #475569;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-.control-btn:hover:not(:disabled) {
-  background-color: #475569;
-}
-.control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }

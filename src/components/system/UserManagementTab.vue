@@ -97,7 +97,7 @@ import { useSystemManagementStore } from '@/stores/systemManagementStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useCrudModal } from '@/composables/useCrudModal';
 import DataTable from '@/components/common/DataTable.vue';
-import FormModal from './FormModal.vue';
+import FormModal from '../common/FormModal.vue';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
 
 const store = useSystemManagementStore();

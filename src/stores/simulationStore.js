@@ -5,6 +5,8 @@ import {
   getSimulationTopology,
   getSimulationStepData,
   getSimulationCompanyDetails,
+  createSimulation as createSimulationApi,
+  deleteSimulation as deleteSimulationApi,
 } from '@/services/api';
 
 export const useSimulationStore = defineStore('simulation', () => {
@@ -155,6 +157,40 @@ export const useSimulationStore = defineStore('simulation', () => {
     selectedNodeDetails.value = null;
   }
 
+  async function createSimulation(formData) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      await createSimulationApi(formData);
+      await fetchSimulations(); // Refresh the list
+    } catch (e) {
+      error.value = e.message;
+      console.error('Failed to create simulation:', e);
+      throw e; // re-throw to be caught in the component
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function deleteSimulation(id) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      await deleteSimulationApi(id);
+      if (selectedSimulationId.value === id) {
+        selectedSimulationId.value = null;
+        topology.value = null;
+        currentStepData.value = null;
+      }
+      await fetchSimulations(); // Refresh the list
+    } catch (e) {
+      error.value = e.message;
+      console.error(`Failed to delete simulation ${id}:`, e);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     // State
     simulations,
@@ -178,5 +214,7 @@ export const useSimulationStore = defineStore('simulation', () => {
     setCurrentTime,
     setSelectedNodeById,
     clearSelectedNode,
+    createSimulation,
+    deleteSimulation,
   };
 });

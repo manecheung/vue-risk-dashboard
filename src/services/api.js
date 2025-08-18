@@ -32,7 +32,7 @@ api.interceptors.response.use(
   response => response,
   // 对错误响应进行统一处理
   async error => {
-    if (error.response && error.response.status === 403) {
+    if (error.response && error.response.status === 403 || error.response.status === 401) {
       // 如果是403错误，说明token无效或已过期
       const authStore = useAuthStore();
       // 调用登出逻辑，清除本地token和用户信息

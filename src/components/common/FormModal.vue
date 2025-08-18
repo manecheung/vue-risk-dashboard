@@ -63,13 +63,26 @@
                 </label>
               </div>
             </div>
+
+            <!-- 文件输入框 -->
+            <input
+              v-if="field.type === 'file'"
+              :id="field.name"
+              type="file"
+              @change="handleFileUpload($event, field.name)"
+              :required="field.required"
+              class="form-input w-full"
+            />
           </div>
         </form>
 
         <!-- 底部操作按钮 -->
         <div class="flex justify-end space-x-4 p-4 bg-slate-800/50 border-t border-slate-700 rounded-b-lg">
-          <button @click="closeModal" class="btn btn-secondary">取消</button>
-          <button @click="submitForm" class="btn btn-primary">保存</button>
+          <button @click="closeModal" class="btn btn-secondary" :disabled="isLoading">取消</button>
+          <button @click="submitForm" class="btn btn-primary" :disabled="isLoading">
+            <span v-if="isLoading">正在保存...</span>
+            <span v-else>保存</span>
+          </button>
         </div>
       </div>
     </div>
@@ -84,6 +97,7 @@ const props = defineProps({
   item: Object, // 传入的初始数据，null 或 undefined 表示新建
   formConfig: Object, // 表单配置对象
   modalTitle: String,
+  isLoading: Boolean, // 新增：用于控制加载状态
 });
 
 const emit = defineEmits(['close', 'submit']);
@@ -107,6 +121,10 @@ function closeModal() {
 function submitForm() {
   // 提交表单数据的副本
   emit('submit', { ...formData.value });
+}
+
+function handleFileUpload(event, fieldName) {
+  formData.value[fieldName] = event.target.files[0];
 }
 </script>
 

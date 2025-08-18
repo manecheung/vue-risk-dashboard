@@ -59,7 +59,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useSystemManagementStore } from '@/stores/systemManagementStore';
-import FormModal from './FormModal.vue';
+import FormModal from '../common/FormModal.vue';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
 import OrganizationNode from './OrganizationNode.vue';
 

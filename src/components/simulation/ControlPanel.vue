@@ -44,11 +44,11 @@
       <div class="space-y-3">
         <label class="block text-sm font-medium text-slate-400">播放控制</label>
         <div class="grid grid-cols-2 gap-2">
-          <button @click="togglePlay" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">
+          <button @click="togglePlay" class="btn btn-secondary" :disabled="(!isPlaying && store.isAnimating) || !store.selectedSimulationId">
             <span v-if="!isPlaying">▶️ 自动播放</span>
             <span v-else>⏸️ 暂停</span>
           </button>
-          <button @click="reset" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">🔄 重置</button>
+          <button @click="reset" class="btn btn-secondary" :disabled="!store.selectedSimulationId">🔄 重置</button>
           <button @click="prevStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">⏪ 上一步</button>
           <button @click="nextStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">⏩ 下一步</button>
         </div>
@@ -103,8 +103,12 @@ const selectedSimulation = computed({
 });
 
 // Debounce the time change to avoid excessive API calls while dragging
-const debouncedSetTime = debounce((time) => {
-  store.setCurrentTime(time);
+const debouncedSetTime = debounce(async (time) => {
+  try {
+    await store.stepSimulation(time);
+  } catch (e) {
+    console.error(`Failed to set time to ${time}:`, e);
+  }
 }, 200);
 
 const onTimeSliderChange = (event) => {
@@ -118,7 +122,7 @@ const play = () => {
 
   // 如果已在结尾，则重置到开头
   if (store.currentTime >= store.timeRange.max) {
-    store.setCurrentTime(store.timeRange.min);
+    store.resetSimulation().catch(e => console.error("Failed to auto-reset simulation:", e));
   }
 
   isPlaying.value = true;
@@ -128,7 +132,10 @@ const play = () => {
     // 仅当上一步动画完成时才推进
     if (!store.isAnimating) {
       if (store.currentTime < store.timeRange.max) {
-        store.setCurrentTime(store.currentTime + 1);
+        store.stepSimulation(store.currentTime + 1).catch(e => {
+          console.error("Failed to advance auto-play step:", e);
+          stop(); // 如果某一步失败，则停止播放
+        });
       } else {
         stop(); // 到达结尾，停止播放
       }
@@ -150,19 +157,31 @@ const togglePlay = () => {
   }
 };
 
-const reset = () => {
+const reset = async () => {
   stop();
-  store.setCurrentTime(store.timeRange.min);
+  try {
+    await store.resetSimulation();
+  } catch (e) {
+    console.error("Failed to reset simulation:", e);
+  }
 };
 
-const prevStep = () => {
+const prevStep = async () => {
   stop();
-  store.setCurrentTime(store.currentTime - 1);
+  try {
+    await store.stepSimulation(store.currentTime - 1);
+  } catch (e) {
+    console.error("Failed to go to previous step:", e);
+  }
 };
 
-const nextStep = () => {
+const nextStep = async () => {
   stop();
-  store.setCurrentTime(store.currentTime + 1);
+  try {
+    await store.stepSimulation(store.currentTime + 1);
+  } catch (e) {
+    console.error("Failed to go to next step:", e);
+  }
 };
 
 onUnmounted(() => {

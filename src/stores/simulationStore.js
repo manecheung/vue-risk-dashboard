@@ -24,6 +24,7 @@ export const useSimulationStore = defineStore('simulation', () => {
   const isLoadingDetails = ref(false);
   const error = ref(null);
   const isAnimating = ref(false); // 动画状态锁
+  const lastAction = ref(null); // 用于区分重置和步进操作
 
   // --- Getters ---
   const simulationOptions = computed(() =>
@@ -78,6 +79,7 @@ export const useSimulationStore = defineStore('simulation', () => {
     stepDataCache.value = {};
     selectedNodeId.value = null;
     selectedNodeDetails.value = null;
+    lastAction.value = 'reset'; // 初始加载/选择新场景被视为一次重置
 
     try {
       topology.value = await getSimulationTopology(id);
@@ -125,6 +127,16 @@ export const useSimulationStore = defineStore('simulation', () => {
 
     currentTime.value = newTime;
     await fetchStepData(newTime);
+  }
+
+  async function stepSimulation(time) {
+    lastAction.value = 'step';
+    await setCurrentTime(time);
+  }
+
+  async function resetSimulation() {
+    lastAction.value = 'reset';
+    await setCurrentTime(timeRange.value.min);
   }
 
   async function fetchNodeDetails(nodeId) {
@@ -209,6 +221,7 @@ export const useSimulationStore = defineStore('simulation', () => {
     isLoadingDetails,
     error,
     isAnimating,
+    lastAction,
     // Getters
     simulationOptions,
     timeRange,
@@ -217,7 +230,8 @@ export const useSimulationStore = defineStore('simulation', () => {
     // Actions
     fetchSimulations,
     selectSimulation,
-    setCurrentTime,
+    stepSimulation,
+    resetSimulation,
     setSelectedNodeById,
     clearSelectedNode,
     createSimulation,

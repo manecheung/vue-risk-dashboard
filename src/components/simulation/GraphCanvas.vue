@@ -141,6 +141,7 @@ const container = ref(null);
 const currentLayout = ref('grid');
 let graph = null;
 let resizeObserver = null;
+let animationSessionId = 0; // 用于取消过时的动画序列
 
 const layoutOptions = ref([
   { value: 'grid', label: '网格布局' },
@@ -469,7 +470,38 @@ const renderGraphData = (data) => {
   }
 };
 
+const applyNodeUpdatesInstant = (updates) => {
+  // 递增会话ID，这会使任何正在运行的旧动画序列失效
+  animationSessionId++;
+
+  if (!graph || !updates) return;
+
+  // 确保动画锁是关闭的，因为这是瞬时更新
+  if (store.isAnimating) {
+    store.setAnimating(false);
+  }
+
+  updates.forEach(update => {
+    try {
+      const node = graph.findById(update.id);
+      if (node && !node.destroyed) {
+        const newState = getNodeState(update.state);
+        graph.clearItemStates(node, ['normal', 'warning', 'danger', 'hover']);
+        if (newState) {
+          graph.setItemState(node, newState, true);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating node instantly:', update.id, error);
+    }
+  });
+};
+
 const applyNodeUpdatesSmooth = (updates) => {
+  // 开始新的动画序列，递增会话ID，使所有旧序列失效
+  animationSessionId++;
+  const currentSessionId = animationSessionId;
+
   if (!graph || !updates || updates.length === 0) {
     // 确保在没有更新时也解除锁定
     if (store.isAnimating) {
@@ -478,15 +510,21 @@ const applyNodeUpdatesSmooth = (updates) => {
     return;
   }
 
-  store.setAnimating(true); // <--- 锁定UI
+  store.setAnimating(true);
 
   let index = 0;
   const interval = 200; // 每个节点更新的间隔时间（毫秒）
 
   function processNextUpdate() {
+    // 核心检查：如果会话ID不匹配，说明新的动画已启动，终止当前旧序列
+    if (currentSessionId !== animationSessionId) {
+      // 注意：不将 isAnimating 设为 false，因为新的动画序列会负责在它完成时解锁
+      return;
+    }
+
     // 当所有节点都更新完毕时，退出并解锁
     if (index >= updates.length) {
-      store.setAnimating(false); // <--- 解锁UI
+      store.setAnimating(false);
       return;
     }
 
@@ -638,7 +676,14 @@ watch(() => store.graphData, (newData, oldData) => {
 
 watch(() => store.nodeUpdates, (updates) => {
   if (!updates || updates.length === 0) return;
-  applyNodeUpdatesSmooth(updates);
+
+  // 根据store中的lastAction决定渲染方式
+  if (store.lastAction === 'reset') {
+    applyNodeUpdatesInstant(updates);
+  } else {
+    // 默认为步进渲染
+    applyNodeUpdatesSmooth(updates);
+  }
 }, { deep: true, immediate: false });
 
 watch(() => store.selectedNodeId, (nodeId) => {

@@ -15,7 +15,7 @@
         <!-- to do: 场景新增和删除场景默认隐藏，后续需要优化后端的性能 -->
         <div class="flex space-x-2 mt-2 hidden">
           <button @click="showAddModal = true" class="btn btn-primary w-full">新增场景</button>
-          <button @click="confirmDelete" class="btn btn-danger w-full" :disabled="!store.selectedSimulationId">删除场景</button>
+          <button @click="confirmDelete" class="btn btn-danger w-full" :disabled="!store.selectedSimulationId || store.isAnimating">删除场景</button>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
           :value="store.currentTime"
           @input="onTimeSliderChange"
           class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          :disabled="!store.selectedSimulationId"
+          :disabled="!store.selectedSimulationId || store.isAnimating"
         />
         <div class="flex justify-between text-xs text-slate-500">
           <span>{{ store.timeRange.min }}</span>
@@ -44,13 +44,13 @@
       <div class="space-y-3">
         <label class="block text-sm font-medium text-slate-400">播放控制</label>
         <div class="grid grid-cols-2 gap-2">
-          <button @click="togglePlay" class="btn btn-secondary" :disabled="!store.selectedSimulationId">
+          <button @click="togglePlay" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">
             <span v-if="!isPlaying">▶️ 自动播放</span>
             <span v-else>⏸️ 暂停</span>
           </button>
-          <button @click="reset" class="btn btn-secondary" :disabled="!store.selectedSimulationId">🔄 重置</button>
-          <button @click="prevStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId">⏪ 上一步</button>
-          <button @click="nextStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId">⏩ 下一步</button>
+          <button @click="reset" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">🔄 重置</button>
+          <button @click="prevStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">⏪ 上一步</button>
+          <button @click="nextStep" class="btn btn-secondary" :disabled="!store.selectedSimulationId || store.isAnimating">⏩ 下一步</button>
         </div>
       </div>
 
@@ -113,17 +113,27 @@ const onTimeSliderChange = (event) => {
 };
 
 const play = () => {
+  // 如果当前正在播放动画，则不允许启动新的播放进程
+  if (store.isAnimating) return;
+
+  // 如果已在结尾，则重置到开头
   if (store.currentTime >= store.timeRange.max) {
-    store.setCurrentTime(store.timeRange.min); // Loop back to start if at the end
+    store.setCurrentTime(store.timeRange.min);
   }
+
   isPlaying.value = true;
+
+  // 设置定时器，该定时器的工作是检查是否可以进入下一步
   playInterval = setInterval(() => {
-    if (store.currentTime < store.timeRange.max) {
-      store.setCurrentTime(store.currentTime + 1);
-    } else {
-      stop(); // Stop when it reaches the end
+    // 仅当上一步动画完成时才推进
+    if (!store.isAnimating) {
+      if (store.currentTime < store.timeRange.max) {
+        store.setCurrentTime(store.currentTime + 1);
+      } else {
+        stop(); // 到达结尾，停止播放
+      }
     }
-  }, 1000);
+  }, 200); // 每200毫秒检查一次状态
 };
 
 const stop = () => {

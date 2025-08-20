@@ -470,42 +470,51 @@ const renderGraphData = (data) => {
 };
 
 const applyNodeUpdatesSmooth = (updates) => {
-  if (!graph || !updates) return;
+  if (!graph || !updates || updates.length === 0) {
+    // 确保在没有更新时也解除锁定
+    if (store.isAnimating) {
+      store.setAnimating(false);
+    }
+    return;
+  }
 
-  graph.updateLayout({ animate: false });
+  store.setAnimating(true); // <--- 锁定UI
 
-  updates.forEach(update => {
+  let index = 0;
+  const interval = 200; // 每个节点更新的间隔时间（毫秒）
+
+  function processNextUpdate() {
+    // 当所有节点都更新完毕时，退出并解锁
+    if (index >= updates.length) {
+      store.setAnimating(false); // <--- 解锁UI
+      return;
+    }
+
+    const update = updates[index];
     try {
       const node = graph.findById(update.id);
-      if (node) {
-        const currentModel = node.getModel();
-        const newColor = getNodeColor(update.state);
+      if (node && !node.destroyed) {
         const newState = getNodeState(update.state);
 
-        graph.updateItem(node, {
-          style: {
-            ...currentModel.style,
-            fill: newColor,
-            fillOpacity: 0.9,
-          }
-        });
-
-        graph.clearItemStates(node);
-
+        // 清除节点的所有现有状态，为设置新状态做准备
+        graph.clearItemStates(node, ['normal', 'warning', 'danger', 'hover']);
+        
+        // 设置新的状态，G6会根据nodeStateStyles自动应用样式
         if (newState) {
           graph.setItemState(node, newState, true);
         }
       }
     } catch (error) {
-      console.error('Error updating node:', update.id, error);
+      console.error(`Error updating node ${update.id}:`, error);
     }
-  });
 
-  setTimeout(() => {
-    if (graph && !graph.get('destroyed')) {
-      graph.updateLayout({ animate: true });
-    }
-  }, 100);
+    index++;
+    // 设置定时器，在指定间隔后处理下一个节点
+    setTimeout(processNextUpdate, interval);
+  }
+
+  // 启动更新流程
+  processNextUpdate();
 };
 
 const getNodeColor = (state) => {

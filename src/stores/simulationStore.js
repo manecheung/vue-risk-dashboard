@@ -23,6 +23,7 @@ export const useSimulationStore = defineStore('simulation', () => {
   const isLoading = ref(false);
   const isLoadingDetails = ref(false);
   const error = ref(null);
+  const isAnimating = ref(false); // 动画状态锁
 
   // --- Getters ---
   const simulationOptions = computed(() =>
@@ -48,6 +49,10 @@ export const useSimulationStore = defineStore('simulation', () => {
   });
 
   // --- Actions ---
+  function setAnimating(status) {
+    isAnimating.value = status;
+  }
+
   async function fetchSimulations() {
     isLoading.value = true;
     error.value = null;
@@ -203,6 +208,7 @@ export const useSimulationStore = defineStore('simulation', () => {
     isLoading,
     isLoadingDetails,
     error,
+    isAnimating,
     // Getters
     simulationOptions,
     timeRange,
@@ -216,5 +222,6 @@ export const useSimulationStore = defineStore('simulation', () => {
     clearSelectedNode,
     createSimulation,
     deleteSimulation,
+    setAnimating,
   };
 });

@@ -3,7 +3,7 @@
     <header class="dashboard-header" role="banner">
       <div class="corner-decorator top-left"></div>
       <div class="corner-decorator top-right"></div>
-      <h1 class="header-title">产业链风险预警数据中心</h1>
+      <h1 class="header-title">风电产业链风险预警数据中心</h1>
       <div class="scan-light"></div>
       <div class="bottom-line"></div>
       <div class="corner-decorator bottom-left"></div>

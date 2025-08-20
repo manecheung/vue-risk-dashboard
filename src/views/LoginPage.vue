@@ -1,9 +1,9 @@
 <template>
   <div class="flex items-center justify-center min-h-screen app-container">
-    <div class="w-full max-w-md p-8 space-y-8 bg-gray-900/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-sky-500/20">
+    <div class="w-full max-w-xl p-8 space-y-8 bg-gray-900/50 backdrop-blur-lg rounded-2xl shadow-2xl">
       <div class="text-center">
-        <img src="/dec.svg" alt="Logo" class="w-16 h-16 mx-auto mb-4" />
-        <h2 class="text-3xl font-bold text-white">产业链风险预警系统</h2>
+        <!-- <img src="/dec.svg" alt="Logo" class="w-16 h-16 mx-auto mb-4" /> -->
+        <h2 class="text-3xl font-bold text-white">风电产业链风险预警数据中心</h2>
       </div>
       <form class="space-y-6" @submit.prevent="handleLogin">
         <div>
@@ -43,8 +43,8 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 
-const username = ref('admin');
-const password = ref('password123');
+const username = ref('');
+const password = ref('');
 const error = ref('');
 const isLoading = ref(false);
 

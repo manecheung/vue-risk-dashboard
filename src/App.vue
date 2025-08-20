@@ -2,8 +2,8 @@
   <div v-if="authStore.isAuthenticated && !loggingOut" class="app-container">
     <header class="main-header" :class="{ 'header-hidden': isHeaderHidden }">
       <div class="flex items-center">
-        <img src="/dec.svg" alt="Logo" class="h-8 w-8 rounded-full" />
-        <h1 class="text-lg font-semibold ml-3 text-white">产业链风险预警系统</h1>
+        <!-- <img src="/dec.svg" alt="Logo" class="h-8 w-8 rounded-full" /> -->
+        <h1 class="text-lg font-semibold ml-3 text-white">风电产业链风险预警数据中心</h1>
       </div>
       <nav class="hidden md:flex items-center space-x-6" aria-label="主导航">
         <router-link v-for="page in mainNav" :key="page.id" :to="page.path"

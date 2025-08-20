@@ -26,6 +26,7 @@ import GraphCanvas from '@/components/simulation/GraphCanvas.vue';
 import DetailsPanel from '@/components/simulation/DetailsPanel.vue';
 import { useSimulationStore } from '@/stores/simulationStore';
 
+
 const store = useSimulationStore();
 
 // Fetch initial data when the component is mounted
@@ -60,3 +61,10 @@ onMounted(async () => {
   }
 }
 </style>
+
+<script>
+// Explicitly naming the component for <keep-alive>
+export default {
+  name: 'ChainRiskPage'
+}
+</script>

@@ -32,7 +32,9 @@
     <main class="transition-all duration-300 h-screen" :style="{ paddingTop: isHeaderHidden ? '0' : '4rem' }">
       <router-view v-slot="{ Component }">
         <transition name="page-fade" mode="out-in">
-          <component :is="Component" />
+          <keep-alive include="ChainRiskPage">
+            <component :is="Component" />
+          </keep-alive>
         </transition>
       </router-view>
     </main>

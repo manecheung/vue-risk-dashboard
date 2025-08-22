@@ -138,7 +138,7 @@ const showNoResults = computed(() => {
 const executeSearch = () => {
   // 如果搜索词为空，则设置为默认值
   if (!store.graphOptions.searchTerm || store.graphOptions.searchTerm.trim() === '') {
-    store.graphOptions.searchTerm = '东方电气';
+    store.graphOptions.searchTerm = '东方电气风电';
   }
   // 调用 store action 执行搜索
   store.fetchGraphData({ keyword: store.graphOptions.searchTerm });

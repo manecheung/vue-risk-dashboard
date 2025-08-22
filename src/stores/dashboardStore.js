@@ -37,7 +37,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       customer: true,
       partner: true,
     },
-    searchTerm: '东方电气', // 1. 设置默认搜索词
+    searchTerm: '东方电气风电', // 1. 设置默认搜索词
   });
   const layoutOptions = ref([
     { value: 'force', label: '力导向' },
@@ -58,7 +58,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         customer: true,
         partner: true,
       },
-      searchTerm: '东方电气', // 重置时也使用默认值
+      searchTerm: '东方电气风电', // 重置时也使用默认值
     };
     // 重置后立即获取默认图谱
     fetchGraphData({ keyword: graphOptions.value.searchTerm });
@@ -160,7 +160,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         customer: true,
         partner: true,
       },
-      searchTerm: '东方电气',
+      searchTerm: '东方电气风电',
     };
   }
 

@@ -84,6 +84,16 @@ const routes = [
       permissions: ['system:users:manage', 'system:roles:manage', 'system:orgs:manage'] 
     } 
   },
+  {
+    path: '/analysis-model',
+    name: 'analysis-model',
+    component: () => import('../views/UestcGraphPage.vue'),
+    meta: {
+      title: '图谱与模型',
+      requiresAuth: true,
+      permissions: ['uestc-graph:view', 'model-management:view']
+    }
+  },
 
   // 辅助路由
   { 

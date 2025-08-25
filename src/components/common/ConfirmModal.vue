@@ -4,7 +4,7 @@
       class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       aria-modal="true" role="alertdialog" aria-labelledby="confirm-modal-title"
       aria-describedby="confirm-modal-description" @keydown="handleKeydown">
-      <div class="panel w-full max-w-md" ref="modalContentRef">
+      <div class="panel w-full" :class="props.maxWidth" ref="modalContentRef">
         <h2 id="confirm-modal-title" class="panel-title">{{ title }}</h2>
         <div class="p-6">
           <div id="confirm-modal-description" class="text-slate-300 leading-relaxed">
@@ -13,12 +13,12 @@
             </slot>
           </div>
           <div class="flex justify-end space-x-4 mt-6">
-            <button ref="cancelButtonRef" @click="$emit('cancel')" class="btn btn-secondary" aria-label="取消操作">
-              取消
+            <button v-if="props.showCancelButton" ref="cancelButtonRef" @click="$emit('cancel')" class="btn btn-secondary" aria-label="取消操作">
+              {{ props.cancelButtonText }}
             </button>
-            <button ref="confirmButtonRef" @click="$emit('confirm')" class="btn btn-primary bg-red-600 hover:bg-red-500"
+            <button v-if="props.showConfirmButton" ref="confirmButtonRef" @click="$emit('confirm')" class="btn btn-primary bg-red-600 hover:bg-red-500"
               aria-label="确认操作">
-              确认
+              {{ props.confirmButtonText }}
             </button>
           </div>
         </div>
@@ -34,6 +34,26 @@ const props = defineProps({
   isOpen: Boolean,
   title: String,
   message: String,
+  showConfirmButton: {
+    type: Boolean,
+    default: true
+  },
+  showCancelButton: {
+    type: Boolean,
+    default: true
+  },
+  confirmButtonText: {
+    type: String,
+    default: '确认'
+  },
+  cancelButtonText: {
+    type: String,
+    default: '取消'
+  },
+  maxWidth: {
+    type: String,
+    default: 'max-w-md'
+  }
 });
 const emit = defineEmits(['confirm', 'cancel']);
 

@@ -158,5 +158,17 @@ export const addOrganization = (orgData) => handleResponse(api.post('/system/org
 export const updateOrganization = (id, orgData) => handleResponse(api.put(`/system/organizations/${id}`, orgData));
 export const deleteOrganization = (id) => handleResponse(api.delete(`/system/organizations/${id}`));
 
+// ==================================================================
+// 电子科大API模块 (UESTC API)
+// ==================================================================
+export const getUestcIndustryChainList = () => handleResponse(api.get('/uestc/industry-chain/list'));
+export const getUestcRiskGraph = (industryChainId) => handleResponse(api.get(`/uestc/risk-status/graph/${industryChainId}`));
+export const getUestcRiskStatusPeriods = (industryChainId) => handleResponse(api.get(`/uestc/risk-status/periods/${industryChainId}`));
+export const getUestcRiskStatusOverview = (industryChainId, dataPeriod) => handleResponse(api.get(`/uestc/risk-status/overview/${industryChainId}?dataPeriod=${dataPeriod}`));
+export const getUestcTrainedModels = (params) => handleResponse(api.get('/uestc/trained-models', { params }));
+export const getUestcTrainingPlots = (id) => handleResponse(api.get(`/uestc/trained-models/${id}/training-plots`));
+
+
+
 // 默认导出axios实例，供authStore等需要直接访问实例的地方使用
 export default api;

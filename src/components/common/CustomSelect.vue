@@ -47,6 +47,14 @@ const props = defineProps({
   direction: {
     type: String,
     default: 'down' // 'down' or 'up'
+  },
+  valueKey: {
+    type: String,
+    default: 'value'
+  },
+  labelKey: {
+    type: String,
+    default: 'label'
   }
 });
 
@@ -67,8 +75,8 @@ const panelClasses = computed(() => ({
 
 const isObjectArray = computed(() => props.options.length > 0 && typeof props.options[0] === 'object' && props.options[0] !== null);
 
-const getOptionValue = (option) => isObjectArray.value ? option.value : option;
-const getOptionLabel = (option) => isObjectArray.value ? option.label : option;
+const getOptionValue = (option) => isObjectArray.value ? option[props.valueKey] : option;
+const getOptionLabel = (option) => isObjectArray.value ? option[props.labelKey] : option;
 
 const selectedLabel = computed(() => {
   if (props.modelValue === undefined || props.modelValue === null || props.modelValue === '') {

@@ -89,7 +89,7 @@ const routes = [
     name: 'analysis-model',
     component: () => import('../views/UestcGraphPage.vue'),
     meta: {
-      title: '图谱与模型',
+      title: '产品图谱与模型',
       requiresAuth: true,
       permissions: ['uestc-graph:view', 'model-management:view']
     }

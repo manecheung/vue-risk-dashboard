@@ -8,7 +8,7 @@
           v-if="authStore.hasPermission(['uestc-graph:view'])"
           @click="activeTab = 'graph'" 
           :class="getTabClass('graph')">
-          产业链图谱
+          产业链产品图谱
         </button>
         <button 
           v-if="authStore.hasPermission(['model-management:view'])"

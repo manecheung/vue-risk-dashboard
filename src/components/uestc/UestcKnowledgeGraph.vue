@@ -48,14 +48,8 @@
     <template v-if="showUIToolay">
       <!-- 工具栏 -->
       <div class="absolute top-4 right-4 flex flex-col space-y-2 z-20 pointer-events-none">
-        <div class="bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-600/50">
-          <div class="text-xs text-slate-300 space-y-1">
-            <div>节点: <span class="text-sky-400 font-mono">{{ data.nodes.length }}</span></div>
-            <div>关系: <span class="text-teal-400 font-mono">{{ data.edges.length }}</span></div>
-          </div>
-        </div>
-        <button @click="handleRefresh" class="bg-slate-700 hover:bg-slate-600 text-slate-200 p-2 rounded-md transition-colors text-xs pointer-events-auto" title="重新渲染">🔄</button>
-        <div class="bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-600/50 space-y-1 pointer-events-auto">
+        <div class="w-24 bg-slate-800/90 backdrop-blur-sm rounded-lg p-2 border border-slate-600/50 space-y-1 pointer-events-auto">
+          <button @click="handleRefresh" class="w-full text-xs text-slate-300 hover:text-slate-100 py-1 transition-colors" title="重新渲染">🔄 重新渲染</button>
           <button @click="fitView" class="w-full text-xs text-slate-300 hover:text-slate-100 py-1 transition-colors" title="适应视图">📐 适应</button>
           <button @click="zoomIn" class="w-full text-xs text-slate-300 hover:text-slate-100 py-1 transition-colors" title="放大">🔍+ 放大</button>
           <button @click="zoomOut" class="w-full text-xs text-slate-300 hover:text-slate-100 py-1 transition-colors" title="缩小">🔍- 缩小</button>

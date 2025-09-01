@@ -65,6 +65,7 @@ const HEADER_HIDE_THRESHOLD = 80;
 const allNavItems = [
   { id: 'dashboard', path: '/', title: '首页看板' }, // No permission needed
   { id: 'monitoring', path: '/monitoring', title: '网络信息监测', permissions: ['monitoring:view'] },
+  { id: 'material-prices', path: '/material-prices', title: '原材料价格监测', permissions: ['materials:view'] },
   { id: 'chain-risk', path: '/chain-risk', title: '产业链风险预警', permissions: ['chain-risk:view'] },
   { id: 'supply-chain', path: '/supply-chain', title: '供应链风险评估', permissions: ['supply-chain:view'] },
   { id: 'analysis-model', path: '/analysis-model', title: '产品图谱与模型', permissions: ['uestc-graph:view', 'model-management:view'] },

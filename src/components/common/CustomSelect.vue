@@ -18,13 +18,16 @@
         :class="panelClasses"
         role="listbox" :aria-activedescendant="focusedOptionId">
         <li v-for="(option, index) in options" :key="index" :id="`option-${uid}-${index}`" role="option"
-          :aria-selected="modelValue === getOptionValue(option)" @click="selectOption(option)"
+          :aria-selected="isSelected(option)" @click="selectOption(option)"
           @mouseenter="focusedIndex = index"
-          class="px-3 py-2 text-sm text-slate-300 rounded-md cursor-pointer hover:bg-sky-500/20" :class="{
-            'bg-sky-500/30 text-white': modelValue === getOptionValue(option),
+          class="px-3 py-2 text-sm text-slate-300 rounded-md cursor-pointer hover:bg-sky-500/20 flex items-center justify-between" :class="{
+            'bg-sky-500/30 text-white': isSelected(option),
             'bg-sky-500/40': focusedIndex === index
           }">
-          {{ getOptionLabel(option) }}
+          <span>{{ getOptionLabel(option) }}</span>
+           <svg v-if="isSelected(option) && multiple" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
         </li>
       </ul>
     </Transition>
@@ -35,7 +38,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
 const props = defineProps({
-  modelValue: [String, Number],
+  modelValue: [String, Number, Array],
   options: {
     type: Array,
     required: true
@@ -55,6 +58,10 @@ const props = defineProps({
   labelKey: {
     type: String,
     default: 'label'
+  },
+  multiple: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -78,7 +85,25 @@ const isObjectArray = computed(() => props.options.length > 0 && typeof props.op
 const getOptionValue = (option) => isObjectArray.value ? option[props.valueKey] : option;
 const getOptionLabel = (option) => isObjectArray.value ? option[props.labelKey] : option;
 
+const isSelected = (option) => {
+  const value = getOptionValue(option);
+  if (props.multiple) {
+    return Array.isArray(props.modelValue) && props.modelValue.includes(value);
+  }
+  return props.modelValue === value;
+};
+
 const selectedLabel = computed(() => {
+  if (props.multiple) {
+    if (!Array.isArray(props.modelValue) || props.modelValue.length === 0) {
+      return props.placeholder;
+    }
+    return props.options
+      .filter(opt => props.modelValue.includes(getOptionValue(opt)))
+      .map(getOptionLabel)
+      .join(', ') || props.placeholder;
+  }
+
   if (props.modelValue === undefined || props.modelValue === null || props.modelValue === '') {
     return props.placeholder;
   }
@@ -97,16 +122,26 @@ const closeDropdown = () => {
 
 const toggleDropdown = () => {
   isOpen.value = !isOpen.value;
-  if (isOpen.value) {
-    focusedIndex.value = props.options.findIndex(opt => getOptionValue(opt) === props.modelValue);
-  } else {
+  if (!isOpen.value) {
     focusedIndex.value = -1;
   }
 };
 
 const selectOption = (option) => {
-  emit('update:modelValue', getOptionValue(option));
-  closeDropdown();
+  const value = getOptionValue(option);
+  if (props.multiple) {
+    const currentValues = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+    const index = currentValues.indexOf(value);
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    emit('update:modelValue', currentValues);
+  } else {
+    emit('update:modelValue', value);
+    closeDropdown();
+  }
 };
 
 const selectFocusedOption = () => {

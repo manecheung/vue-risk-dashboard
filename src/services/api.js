@@ -91,6 +91,14 @@ export const getArticleDetail = (id) => handleResponse(api.get(`/monitoring/arti
 
 
 // ==================================================================
+// 原材料价格模块 (Material Prices)
+// ==================================================================
+export const getMaterialIndicators = () => handleResponse(api.get('/materials/quotas'));
+export const getMaterialPrices = (params) => handleResponse(api.get('/materials/prices', { params }));
+export const getMaterialPricePrediction = (params) => handleResponse(api.get('/materials/predict', { params }));
+
+
+// ==================================================================
 // 风险蔓延模拟模块 (Simulation)
 // ==================================================================
 /**

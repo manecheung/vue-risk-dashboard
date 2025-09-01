@@ -53,6 +53,16 @@ const routes = [
       permissions: ['monitoring:view'] // 继承列表页的查看权限
     } 
   },
+  {
+    path: '/material-prices',
+    name: 'material-prices',
+    component: () => import('../views/MaterialPricePage.vue'),
+    meta: {
+      title: '原材料价格监测',
+      requiresAuth: true,
+      permissions: ['materials:view']
+    }
+  },
   { 
     path: '/chain-risk', 
     name: 'chain-risk', 

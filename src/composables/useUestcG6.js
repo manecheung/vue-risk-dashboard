@@ -67,6 +67,7 @@ export function useUestcG6(graphData) {
         container,
         width,
         height,
+        renderer: 'webgl', // 优化：启用WebGL渲染器
         fitView: true,
         fitViewPadding: [40, 40, 40, 40],
         fitCenter: true,
@@ -75,7 +76,6 @@ export function useUestcG6(graphData) {
         layout: getLayoutConfig(0),
         animate: true,
         animateCfg: { duration: 300, easing: 'easeCubic' },
-        // -- 最终方案：回归State机制，并移除brush-select模式 --
         modes: {
           default: ['drag-canvas', 'zoom-canvas', 'drag-node'],
         },
@@ -107,7 +107,7 @@ export function useUestcG6(graphData) {
             lineWidth: 4, 
             shadowColor: '#f59e0b', 
             shadowBlur: 15, 
-            fill: '#4A5568' // -- 新需求：选中后背景变为深色 --
+            fill: '#4A5568'
           },
           dim: { opacity: 0.3 },
         },
@@ -161,42 +161,7 @@ export function useUestcG6(graphData) {
     }
   };
 
-  // --- 交互逻辑 (使用State机制) ---
-
-  const setupGraphInteractions = (graph) => {
-    const debouncedRefresh = debounce(() => graph.refresh(), 100);
-    graph.on('viewportchange', debouncedRefresh);
-    graph.on('aftercrash', () => renderError.value = '图形渲染崩溃，请刷新重试');
-
-    graph.on('node:mouseenter', e => graph.setItemState(e.item, 'hover', true));
-    graph.on('node:mouseleave', e => graph.setItemState(e.item, 'hover', false));
-    graph.on('node:click', e => highlightNodeAndNeighbors(graph, e.item));
-
-    // -- 终极修复：手动实现最可靠的“点击空白处”检测，避免与拖拽冲突 --
-    let mousedownPos = null;
-    graph.on('canvas:mousedown', e => {
-      mousedownPos = { x: e.x, y: e.y };
-    });
-
-    graph.on('canvas:mouseup', e => {
-      if (mousedownPos) {
-        const dist = (e.x - mousedownPos.x) ** 2 + (e.y - mousedownPos.y) ** 2;
-        // 如果移动距离小于5像素，则视为点击
-        if (dist < 25) {
-          clearAllHighlights(graph);
-        }
-      }
-      mousedownPos = null;
-    });
-
-    // 如果鼠标移出画布，取消点击判定
-    graph.on('canvas:mouseleave', () => {
-      mousedownPos = null;
-    });
-  };
-
   const clearAllHighlights = (graph) => {
-    // -- 修复：明确指定要清除的状态，确保交互的健壮性 --
     graph.getNodes().forEach(node => graph.clearItemStates(node, ['active', 'dim', 'hover']));
     graph.getEdges().forEach(edge => graph.clearItemStates(edge, ['active', 'dim', 'hover']));
   };
@@ -227,12 +192,57 @@ export function useUestcG6(graphData) {
     });
   };
 
-  // --- 辅助函数 ---
+  const setupGraphInteractions = (graph) => {
+    let pinnedNode = null;
+    const debouncedRefresh = debounce(() => graph.refresh(), 100);
+    graph.on('viewportchange', debouncedRefresh);
+    graph.on('aftercrash', () => renderError.value = '图形渲染崩溃，请刷新重试');
+
+    graph.on('node:mouseenter', e => {
+      if (!pinnedNode) { highlightNodeAndNeighbors(graph, e.item); }
+      graph.setItemState(e.item, 'hover', true);
+    });
+
+    graph.on('node:mouseleave', e => {
+      if (!pinnedNode) { clearAllHighlights(graph); }
+      graph.setItemState(e.item, 'hover', false);
+    });
+
+    graph.on('node:click', e => {
+      const clickedNode = e.item;
+      if (pinnedNode && pinnedNode.getID() === clickedNode.getID()) {
+        pinnedNode = null;
+        clearAllHighlights(graph);
+      } else {
+        pinnedNode = clickedNode;
+        highlightNodeAndNeighbors(graph, clickedNode);
+      }
+    });
+
+    let mousedownPos = null;
+    graph.on('canvas:mousedown', e => { mousedownPos = { x: e.x, y: e.y }; });
+    graph.on('canvas:mouseup', e => {
+      if (mousedownPos) {
+        const dist = (e.x - mousedownPos.x) ** 2 + (e.y - mousedownPos.y) ** 2;
+        if (dist < 25) { pinnedNode = null; clearAllHighlights(graph); }
+      }
+      mousedownPos = null;
+    });
+    graph.on('canvas:mouseleave', () => { mousedownPos = null; });
+
+    graph.on('afterviewportchange', () => {
+      const zoom = graph.getZoom();
+      const shouldHideLabel = zoom < 0.4;
+      graph.getNodes().forEach(node => {
+        const shapes = node.getContainer().get('children');
+        const labelShape = shapes.find(s => s.get('type') === 'text');
+        if (labelShape) { shouldHideLabel ? labelShape.hide() : labelShape.show(); }
+      });
+    });
+  };
 
   const createTooltip = () => new G6.Tooltip({ offsetX: 10, offsetY: 20, trigger: 'mouseenter', itemTypes: ['node', 'edge'], className: 'g6-custom-tooltip', getContent: (e) => { try { const m = e.item.getModel(); return e.item.getType()==='node'?`<div class="tooltip-content"><strong>${m.label||m.id}</strong><br><span class="tooltip-meta">类型: ${m.category||'未分类'}</span></div>`:`<div class="tooltip-content"><strong>关系: ${m.label||'关联'}</strong></div>`; } catch (err) { return '数据加载错误'; } } });
   const getLayoutConfig = (nodeCount) => ({ type: 'force', preventOverlap: true, linkDistance: nodeCount > 40 ? 100 : 80, nodeStrength: -300, edgeStrength: 0.2 });
-
-  // --- Vue Hooks & Watchers ---
 
   watch(
     () => [containerRef.value, graphData.value],
@@ -249,8 +259,6 @@ export function useUestcG6(graphData) {
   );
 
   onUnmounted(destroyGraph);
-
-  // --- 返回的API ---
 
   const refresh = () => renderGraphData(graphData.value);
   const fitView = () => graphInstanceRef.value?.fitView(40, null, true);

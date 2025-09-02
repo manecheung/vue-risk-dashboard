@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import AutoLoginPage from '../views/AutoLoginPage.vue'; // 新增的导入
 
 const routes = [
   // 公开路由：登录页
@@ -8,6 +9,13 @@ const routes = [
     name: 'login', 
     component: () => import('../views/LoginPage.vue'), 
     meta: { title: '登录', public: true } 
+  },
+  // 新增的自动登录路由
+  {
+    path: '/auto-login',
+    name: 'AutoLogin',
+    component: AutoLoginPage,
+    meta: { title: '自动登录', public: true } // 标记为公开路由，无需认证
   },
   
   // 需要认证和权限的业务路由

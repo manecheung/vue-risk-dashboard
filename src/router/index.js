@@ -112,6 +112,16 @@ const routes = [
       permissions: ['uestc-graph:view', 'model-management:view']
     }
   },
+  {
+    path: '/risk-propagation',
+    name: 'risk-propagation',
+    component: () => import('../views/RiskPropagationPage.vue'),
+    meta: {
+      title: '产业链风险模拟',
+      requiresAuth: true,
+      permissions: ['chain-risk:manage']
+    }
+  },
 
   // 辅助路由
   { 

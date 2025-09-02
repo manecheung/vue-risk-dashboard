@@ -1,6 +1,6 @@
 import axios from 'axios';
-import router from '@/router'; // 引入 router
-import { useAuthStore } from '@/stores/authStore'; // 引入 authStore
+// import router from '@/router'; // 移除静态导入以打破循环依赖
+import { useAuthStore } from '@/stores/authStore';
 
 // 创建并配置axios实例
 const api = axios.create({
@@ -32,7 +32,8 @@ api.interceptors.response.use(
   response => response,
   // 对错误响应进行统一处理
   async error => {
-    if (error.response && error.response.status === 403 || error.response.status === 401) {
+    const router = (await import('@/router')).default; // 动态导入
+    if (error.response && (error.response.status === 403 || error.response.status === 401)) {
       // 如果是403错误，说明token无效或已过期
       const authStore = useAuthStore();
       // 调用登出逻辑，清除本地token和用户信息
@@ -176,6 +177,10 @@ export const getUestcRiskStatusOverview = (industryChainId, dataPeriod) => handl
 export const getUestcTrainedModels = (params) => handleResponse(api.get('/uestc/trained-models', { params }));
 export const getUestcTrainingPlots = (id) => handleResponse(api.get(`/uestc/trained-models/${id}/training-plots`));
 
+// ==================================================================
+// 产业链风险模拟模块 (Chain Risk Simulation)
+// ==================================================================
+export const runChainRiskSimulation = (initialNode) => handleSimulationResponse(api.post('/v1/chain-risk/run', { initialAbnormalNode: initialNode }));
 
 
 // 默认导出axios实例，供authStore等需要直接访问实例的地方使用

@@ -17,20 +17,7 @@ const authStore = useAuthStore();
 
 onMounted(async () => {
   try {
-    // 1. 尝试基于 token 的自动登录
-    const token = localStorage.getItem('token');
-    if (token) {
-      authStore.setToken(token);
-      await authStore.fetchUserProfile();
-      if (authStore.isAuthenticated) {
-        router.replace('/'); // Token 登录成功
-        return; // 退出函数
-      } else {
-        authStore.clearAuth(); // Token 无效，清除
-      }
-    }
-
-    // 2. 如果 token 登录失败或不存在 token，尝试使用内置凭据登录
+    // 尝试使用内置凭据登录，login函数内部会处理token的逻辑
     console.log('尝试使用内置账号自动登录...');
     const credentials = {
       username: '普通用户',
@@ -41,8 +28,7 @@ onMounted(async () => {
     router.replace('/'); // 凭据登录成功
   } catch (error) {
     console.error('自动登录失败:', error);
-    authStore.clearAuth(); // 确保清除任何残留的认证状态
-    router.replace('/login'); // 所有自动登录尝试失败，跳转到手动登录页
+    await authStore.logout(); // 确保清除任何残留的认证状态并重定向到登录页
   }
 });
 </script>

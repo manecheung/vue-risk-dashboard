@@ -129,7 +129,7 @@ export const useMaterialPriceStore = defineStore('materialPrice', {
             }
         },
 
-        async fetchPrediction(indicatorId, indicatorName, days = 30) {
+        async fetchPrediction(indicatorId, indicatorName, days = 7) {
             this.isPredicting = true;
             const feedback = useFeedbackStore();
             try {

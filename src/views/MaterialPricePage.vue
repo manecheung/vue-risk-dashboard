@@ -42,7 +42,7 @@
                   title="预测功能仅在选择单个指标后可用"
                 >
                   <span v-if="store.isPredicting">预测中...</span>
-                  <span v-else>预测未来30天</span>
+                  <span v-else>预测未来7天</span>
                 </button>
             </div>
         </div>

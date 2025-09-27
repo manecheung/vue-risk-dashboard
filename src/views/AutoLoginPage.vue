@@ -9,23 +9,22 @@
 
 <script setup>
 import { onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 
-const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 onMounted(async () => {
   try {
-    // 尝试使用内置凭据登录，login函数内部会处理token的逻辑
     console.log('尝试使用内置账号自动登录...');
     const credentials = {
       username: '普通用户',
       password: 'Test123456'
     };
-    await authStore.login(credentials);
-    console.log('内置账号自动登录成功，跳转到主页...');
-    router.replace('/'); // 凭据登录成功
+    const redirectPath = route.query.redirect || '/';
+    await authStore.login(credentials, { redirectPath: redirectPath, isAutoLogin: true });
+    console.log('内置账号自动登录成功，跳转指令已发出...');
   } catch (error) {
     console.error('自动登录失败:', error);
     await authStore.logout(); // 确保清除任何残留的认证状态并重定向到登录页

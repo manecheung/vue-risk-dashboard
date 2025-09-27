@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, computed } from 'vue';
+import { ref, watchEffect, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import FeedbackToast from '@/components/common/FeedbackToast.vue';
 import { useAuthStore } from '@/stores/authStore';
@@ -59,8 +59,35 @@ const loggingOut = ref(false);
 const user = computed(() => authStore.user);
 const userInitial = computed(() => user.value?.name?.charAt(0).toUpperCase() || 'U');
 
-
 const HEADER_HIDE_THRESHOLD = 80;
+
+const handleMouseMove = (event) => {
+  isHeaderHidden.value = event.clientY > HEADER_HIDE_THRESHOLD;
+};
+
+watchEffect(() => {
+  // 1. Priority logic for auto-login: always hide header
+  if (authStore.isAutoLoginSession) {
+    isHeaderHidden.value = true;
+    window.removeEventListener('mousemove', handleMouseMove);
+    return;
+  }
+
+  // 2. Logic for dashboard page for normal users
+  if (route.path === '/' && authStore.isAuthenticated) {
+    isHeaderHidden.value = true; // Hide by default on dashboard
+    window.addEventListener('mousemove', handleMouseMove);
+  } else {
+    // 3. Logic for all other pages for normal users
+    isHeaderHidden.value = false; // Show on other pages
+    window.removeEventListener('mousemove', handleMouseMove);
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('mousemove', handleMouseMove);
+});
+
 
 const allNavItems = [
   { id: 'dashboard', path: '/', title: '首页看板' }, // No permission needed
@@ -102,34 +129,6 @@ const handleLogout = async () => {
   await router.replace({ name: 'login' });
   loggingOut.value = false;
 };
-
-const handleMouseMove = (event) => {
-  isHeaderHidden.value = event.clientY > HEADER_HIDE_THRESHOLD;
-};
-
-watch(() => route.path, (newPath) => {
-  if (newPath === '/' && authStore.isAuthenticated) {
-    isHeaderHidden.value = true;
-    window.addEventListener('mousemove', handleMouseMove);
-  } else {
-    isHeaderHidden.value = false;
-    window.removeEventListener('mousemove', handleMouseMove);
-  }
-}, { immediate: true });
-
-watch(() => authStore.isAuthenticated, (isAuth) => {
-  if (isAuth && route.path === '/') {
-     isHeaderHidden.value = true;
-    window.addEventListener('mousemove', handleMouseMove);
-  } else if (!isAuth) {
-    isHeaderHidden.value = false;
-    window.removeEventListener('mousemove', handleMouseMove);
-  }
-}, { immediate: true });
-
-onUnmounted(() => {
-  window.removeEventListener('mousemove', handleMouseMove);
-});
 </script>
 
 <style>

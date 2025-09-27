@@ -40,7 +40,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 
 const username = ref('');
@@ -48,15 +48,15 @@ const password = ref('');
 const error = ref('');
 const isLoading = ref(false);
 
-const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const handleLogin = async () => {
   isLoading.value = true;
   error.value = '';
   try {
-    await authStore.login({ username: username.value, password: password.value });
-    router.push('/');
+    const redirectPath = route.query.redirect || '/';
+    await authStore.login({ username: username.value, password: password.value }, { redirectPath: redirectPath });
   } catch (err) {
     error.value = err.message || '登录失败，请检查用户名和密码。';
   } finally {

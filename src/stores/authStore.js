@@ -9,6 +9,7 @@ import { useSystemManagementStore } from './systemManagementStore';
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || null);
   const user = ref(JSON.parse(localStorage.getItem('user')) || null);
+  const isAutoLoginSession = ref(sessionStorage.getItem('isAutoLoginSession') === 'true' || false);
 
   const permissions = computed(() => user.value?.permissions || []);
   const isAuthenticated = computed(() => !!token.value);
@@ -41,7 +42,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(credentials) {
+  function setIsAutoLoginSession(isAuto) {
+    isAutoLoginSession.value = isAuto;
+    if (isAuto) {
+      sessionStorage.setItem('isAutoLoginSession', 'true');
+    } else {
+      sessionStorage.removeItem('isAutoLoginSession');
+    }
+  }
+
+  async function login(credentials, { redirectPath = null, isAutoLogin = false } = {}) {
     try {
       const response = await api.post('/auth/login', credentials);
       const responseData = response.data.data;
@@ -50,9 +60,19 @@ export const useAuthStore = defineStore('auth', () => {
       }
       setToken(responseData.token);
       setUserInfo(responseData.userInfo);
+      setIsAutoLoginSession(isAutoLogin);
+
+      // 确保状态更新后执行跳转
+      await nextTick();
+      
+      // 登录成功后处理重定向
+      const finalRedirectPath = redirectPath || '/';
+      router.replace(finalRedirectPath);
+
     } catch (error) {
       setToken(null);
       setUserInfo(null);
+      setIsAutoLoginSession(false);
       const message = error.response?.data?.message || 'Login failed. Please check your credentials.';
       throw new Error(message);
     }
@@ -86,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
     // 4. Clear local auth state.
     setToken(null);
     setUserInfo(null);
+    setIsAutoLoginSession(false);
 
     // 5. (Optional) Notify the backend. This is the last step.
     try {
@@ -105,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
     user, 
     permissions, 
     isAuthenticated, 
+    isAutoLoginSession,
     hasPermission, 
     login, 
     logout 

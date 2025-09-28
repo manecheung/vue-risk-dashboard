@@ -5,7 +5,17 @@
       @keydown.esc.prevent="closeDropdown" type="button"
       class="form-select text-left w-full flex justify-between items-center" aria-haspopup="listbox"
       :aria-expanded="isOpen" :aria-labelledby="labelId">
-      <span :id="labelId" class="truncate">{{ selectedLabel }}</span>
+      <div v-if="multiple && modelValue && modelValue.length > 0" class="flex flex-wrap items-center flex-grow gap-1.5">
+        <span v-for="value in modelValue" :key="value" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-500/20 text-sky-300">
+          {{ getOptionLabelByValue(value) }}
+          <button @click.stop.prevent="removeOption(value)" type="button" class="flex-shrink-0 ml-1.5 -mr-0.5 p-0.5 rounded-full inline-flex items-center justify-center text-sky-400 hover:bg-sky-500/40 hover:text-sky-200 focus:outline-none">
+            <svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+              <path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" />
+            </svg>
+          </button>
+        </span>
+      </div>
+      <span v-else :id="labelId" class="truncate">{{ selectedLabel }}</span>
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 transition-transform"
         :class="{ 'rotate-180': isOpen }" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd"
@@ -85,6 +95,11 @@ const isObjectArray = computed(() => props.options.length > 0 && typeof props.op
 const getOptionValue = (option) => isObjectArray.value ? option[props.valueKey] : option;
 const getOptionLabel = (option) => isObjectArray.value ? option[props.labelKey] : option;
 
+const getOptionLabelByValue = (value) => {
+  const option = props.options.find(opt => getOptionValue(opt) === value);
+  return option ? getOptionLabel(option) : value;
+};
+
 const isSelected = (option) => {
   const value = getOptionValue(option);
   if (props.multiple) {
@@ -95,13 +110,7 @@ const isSelected = (option) => {
 
 const selectedLabel = computed(() => {
   if (props.multiple) {
-    if (!Array.isArray(props.modelValue) || props.modelValue.length === 0) {
-      return props.placeholder;
-    }
-    return props.options
-      .filter(opt => props.modelValue.includes(getOptionValue(opt)))
-      .map(getOptionLabel)
-      .join(', ') || props.placeholder;
+    return props.placeholder;
   }
 
   if (props.modelValue === undefined || props.modelValue === null || props.modelValue === '') {
@@ -124,6 +133,13 @@ const toggleDropdown = () => {
   isOpen.value = !isOpen.value;
   if (!isOpen.value) {
     focusedIndex.value = -1;
+  }
+};
+
+const removeOption = (valueToRemove) => {
+  if (props.multiple) {
+    const updatedValues = props.modelValue.filter(value => value !== valueToRemove);
+    emit('update:modelValue', updatedValues);
   }
 };
 
